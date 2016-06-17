@@ -62,6 +62,11 @@ I see an opportunity here to rewrite more of this piece of code now that it's
 working. It'd be nice to simplify it further and move it into a Markdown source
 like the rest of the Nga source tree.
 
+...
+
+cross.rx is now nmfcx.rx (nga machine forth cross compiler) - I've simplified
+it to a good extent and am now happy with it.
+
 **6/16/2016**:
 
 So the core of Nga is done (assuming I don't decide to make more changes to
