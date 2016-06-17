@@ -17,11 +17,17 @@ void processOpcodes() {
   ip = 0;
   while (ip < IMAGE_SIZE) {
     opcode = memory[ip];
+//    printf("+ %d: %d -- ", ip, opcode);
+//    int i;
+//    for(i = 1; i <= sp; i++)
+//        printf("%d,", data[i]);
+//    printf("\n");
     if (opcode >= 0 && opcode < 27)
       ngaProcessOpcode();
     else
       switch(opcode) {
         case 90: printf("%c", (char)data[sp]);
+                 sp--;
                  break;
         case 91: sp++;
                  TOS = getc(stdin);

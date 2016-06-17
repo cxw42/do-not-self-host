@@ -1,5 +1,67 @@
 # Bootstrapping
 
+**6/17/2016**:
+
+When I began work on Retro I started with an assembler written in Toka. Though
+a bit more complex now, the metacompiler is a direct descendant of that original
+piece of code. I'll be following the same general approach for one of these
+experiments.
+
+Added two files:
+
+* nga.c
+* ngita.c
+
+Build using:
+
+    cc ngita.c nga.c -o ngita
+
+Added more files:
+
+* retro.c
+* retroImage
+* library/files.rx
+
+Build using:
+
+    cc retro.c -o retro
+
+Then a cross compiler:
+
+* cross.rx
+
+The cross compiler is a hacked up copy of **meta.rx** from Retro 11.7. The
+main changes so far:
+
+* Nga instructions instead of Ngaro ones
+* changed these to use Nga instructions / memory layout:
+
+  - main:
+  - t:
+  - i:
+  - cond
+  - =if
+  - <if
+  - >if
+  - jump:
+  - again
+
+* removed:
+
+  - ;
+  - bootNew
+  - shrink
+  - a bunch of dictionary related bits
+
+* added ;,
+* added image saving code from retro.rx Ngaro implementation
+
+So there's now a mostly functional cross compiler / machine forth dialect.
+
+I see an opportunity here to rewrite more of this piece of code now that it's
+working. It'd be nice to simplify it further and move it into a Markdown source
+like the rest of the Nga source tree.
+
 **6/16/2016**:
 
 So the core of Nga is done (assuming I don't decide to make more changes to

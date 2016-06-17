@@ -1,0 +1,105 @@
+( Retro ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ )
+( Copyright [c] 2008 - 2016, Charles Childers                                 )
+( Copyright [c] 2009 - 2010, Luke Parrish                                     )
+( Copyright [c] 2010,        Marc Simpson                                     )
+( Copyright [c] 2010,        Jay Skeer                                        )
+( ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ )
+
+( Assembler and Metacompiler ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ )
+36 1024 * constant IMAGE-SIZE
+
+( Assembler ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ )
+variables| target origin 'WORD 'MACRO 'DATA 'PRIM link chain latest |
+here [ !target ] [ !origin ] bi IMAGE-SIZE allot
+
+: m,  ( n-  ) @target !+ !target ;
+: vm: ( n"- ) ` : .data ` m, ` ; ;
+
+0 vm: nop,       7 vm: jump,     14 vm: gt,       21 vm: and,
+1 vm: lit,       8 vm: call,     15 vm: fetch,    22 vm: or,
+2 vm: dup,       9 vm: cjump,    16 vm: store,    23 vm: xor,
+3 vm: drop,     10 vm: return,   17 vm: add,      24 vm: shift,
+4 vm: swap,     11 vm: eq,       18 vm: sub,      25 vm: zret,
+5 vm: push,     12 vm: neq,      19 vm: mul,      26 vm: end,
+6 vm: pop,      13 vm: lt,       20 vm: divmod,
+
+: t-here      (  -n ) @target @origin - ;
+: pad         ( -   ) 32 @origin + !target ;
+: endKernel   (  -  )
+  t-here "\nKernel ends @ %d\n" puts
+  IMAGE-SIZE t-here - "%d cells free" puts
+  depth 1 >= [ "\nError in stack depth!: " puts .s ] ifTrue ;
+: main:       (  -  ) t-here [ "\nMAIN @ %d" puts ] [ @origin 2 + ! ] bi ;
+: label:      ( "-  ) t-here constant t-here @last d->name "\n%s @ %d" puts ;
+: #           ( n-  ) lit, m, ;
+: __#         ( $-  ) lit, toNumber m, ; parsing
+: $,          ( $-  ) withLength [ @+ m, ] times 0 m, drop ;
+: shrink      (  -  ) t-here "\nShrinking kernel to %d cells\n" puts
+                      t-here @origin 6 + ! t-here @origin 3 + ! ;
+
+( Metacompiler ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ )
+
+{{
+  : <self-compile> [ lit, m, call, ] reclass ;
+---reveal---
+  : t: ( "- ) label: <self-compile> ;
+  : i: ( "- ) label: <self-compile> ;
+}}
+
+{{
+  : cond ( -a ) lit, @target 0 m, ;
+---reveal---
+  : =if  ( -a ) neq, cond ;
+  : <if  ( -a ) gt, cond ;
+  : >if  ( -a ) lt, cond ;
+  : !if  ( -a ) eq, cond ;
+  : then ( a- ) t-here swap ! ;
+}}
+
+: jump:  ( "-  ) lit, ' m, jump, ;
+: repeat (  -a ) t-here ;
+: again  ( a-  ) lit, m, jump, ;
+
+: tallot  ( n- ) [ 0 m, ] times ;
+
+: variable: ( n"- ) label: m, ;
+: variable  (  "- ) 0 variable: ;
+: elements  ( n"- ) &variable times ;
+: entry     ( a"- ) t-here dup !latest @link m, !link m, m, 0 m, getToken $, ;
+: word:     ( a"- ) @'WORD  entry ;
+: data:     ( a"- ) @'DATA  entry ;
+
+: patch     (   - ) @link [ @chain ! ] [ "\nLast header at %d" puts ] bi ;
+: mark      (   - ) @target !chain ;
+: setClass  ( aa- ) ! ;
+
+: ;, ( - ) return, ;
+
+( Image Relocator ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ )
+needs files'
+variable fid
+
+: writeByte ( n- )
+  @fid ^files'write drop ;
+
+: applyMask ( n- )
+  %00000000000000000000000011111111 and ;
+
+: writeCell ( n- )
+       dup applyMask writeByte
+  8 >> dup applyMask writeByte
+  8 >> dup applyMask writeByte
+  8 >>     applyMask writeByte ;
+
+: saveImage ( $- )
+  ^files':W ^files'open !fid
+  @origin @target over - [ @+ writeCell ] times drop
+  @fid ^files'close drop ;
+
+
+( Avoid keymap issues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ )
+devector keymap:handler
+
+( Setup target memory for new image ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ )
+lit, 0 m, jump,
+reset
