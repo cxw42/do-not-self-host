@@ -71,7 +71,7 @@ class Compiler(StackingNodeVisitor):
             self.stack[-1].update(var[1], variable_name)
 
             # Allocate static storage space for the variable
-            print(":" + variable_name + "\n  lit 0")
+            print(":" + variable_name + "\n  .data 0")
 #            print "    0"
 
     def accept_constants(self, *node):
@@ -104,7 +104,7 @@ class Compiler(StackingNodeVisitor):
 
     def accept_program(self, *node):
 #        print "JMP main"
-        print(":Output\n  lit 0")
+        print(":Output\n  .data 0")
 
         print("\n# Globals")
         block = node[1]
@@ -174,7 +174,7 @@ class Compiler(StackingNodeVisitor):
         if defined != 'VARIABLE':
             raise NameError("Invalid assignment to non-variable " + assign_to + " of type " + defined)
 
-        print("  lit " + str(value))
+        print("  lit &" + str(value))
         print("  store")
 
     def accept_call(self, *node):
@@ -183,7 +183,7 @@ class Compiler(StackingNodeVisitor):
         if defined != 'PROCEDURE':
             raise NameError("Expecting procedure but got: " + defined)
 
-        print("  lit " + value)
+        print("  lit &" + value)
         print("  call")
 
     def accept_term(self, *node):
@@ -214,7 +214,7 @@ class Compiler(StackingNodeVisitor):
 
     def accept_print(self, *node):
         self.visit_node(node[1])
-        print(" &Output push")
+        print("  lit &Output\n  store")
 #        print "\tPOP"
 
     def accept_number(self, *node):
@@ -224,7 +224,7 @@ class Compiler(StackingNodeVisitor):
         defined, value, level = self.find(node[1])
 
         if defined == 'VARIABLE':
-            print("  lit " + value)
+            print("  lit &" + value)
             print("  fetch")
         elif defined == 'CONSTANT':
             print(" " + str(value))
