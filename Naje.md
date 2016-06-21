@@ -1,17 +1,16 @@
 # Naje
 
-This is a two pass assembler for the Nga virtual machine instruction set. It
-provides:
+Naje is a minimalistic assembler for the Nga instruction set. It provides:
 
-* two pass implementation
-* labels
-* literals (integers, pointers to labels)
-* symbolic names for all instructions
-* capacity to set output filename
-* capacity to inline data
+* Two passes: assemble, then resolve lables
+* Lables
+* Basic literals
+* Symbolic names for all instructions
+* Facilities for inlining simple data
+* Directives for setting output filename
 
 Naje is intended to be a stepping stone for supporting larger applications.
-It's not designed to be easy or fun to use, just to provide the absolute core
+It wasn't designed to be easy or fun to use, just to provide the essentials
 needed to build useful things.
 
 ## Instruction Set
@@ -43,15 +42,15 @@ Naje provides a simple syntax. A short example:
       return
     :increment
       lit 1
-      lit add
+      lit &add
       call
       return
     :main
       lit 100
       lit 95
-      lit subtract
+      lit &subtract
       call
-      lit increment
+      lit &increment
       call
       end
 
@@ -61,7 +60,7 @@ Delving a bit deeper:
 * One instruction (or assembler directive) per line
 * Labels start with a colon
 * A **lit** can be followed by a number or a label name
-* Labels must be defined before they can be used
+* References to labels must start with an &
 
 ### Assembler Directives
 
@@ -184,23 +183,7 @@ This next function saves the memory image to a file.
 
 ````
 def save(filename):
-    global memory
     import struct
-
-    results = []
-    for cell in memory:
-        value = 0
-        try:
-            value = int(cell)
-        except ValueError:
-            value = lookup(cell[1:])
-            if value == -1:
-                print('Label not found!')
-                exit()
-        results.append(value)
-
-    memory = results
-
     with open(filename, 'wb') as file:
         j = 0
         while j < i:
@@ -215,7 +198,7 @@ offset 0, which will be patched by a later routine.
 ````
 def preamble():
     comma(1)  # LIT
-    comma(0)  # value will be patched by main:
+    comma(0)  # value will be patched to point to :main
     comma(7)  # JUMP
 ````
 
@@ -331,6 +314,25 @@ def assemble(line):
         exit()
 ````
 
+**resolve_labels()** is the second pass; it converts any labels into addresses.
+
+````
+def resolve_labels():
+    global memory
+    results = []
+    for cell in memory:
+        value = 0
+        try:
+            value = int(cell)
+        except ValueError:
+            value = lookup(cell[1:])
+            if value == -1:
+                print('Label not found!')
+                exit()
+        results.append(value)
+    memory = results
+````
+
 And finally we can tie everything together into a coherent package.
 
 ````
@@ -346,6 +348,7 @@ if __name__ == '__main__':
     preamble()
     for line in src:
         assemble(line)
+    resolve_labels()
     patch_entry()
 
     if len(sys.argv) < 3:

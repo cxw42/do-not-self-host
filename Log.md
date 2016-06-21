@@ -5,6 +5,10 @@
 I've been working on Naje. When I'm done it'll be a two pass assembler to
 allow for forward references.
 
+Update: finished two pass model during lunch break; Naje is now useful.
+
+Next up: get PL/0 -> Naje working
+
 **6/17/2016**:
 
 When I began work on Retro I started with an assembler written in Toka. Though
