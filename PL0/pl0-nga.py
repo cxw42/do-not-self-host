@@ -205,12 +205,12 @@ class Compiler(StackingNodeVisitor):
             self.visit_node(term[1])
 
             if term[0] == 'PLUS':
-                print(" +")
+                print("  add")
             elif term[0] == 'MINUS':
-                print(" -")
+                print("  subtract")
 
         if node[1] == 'MINUS':
-            print(" -1 *")
+            print("  lit -1\n  multiply")
 
     def accept_print(self, *node):
         self.visit_node(node[1])
