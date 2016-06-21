@@ -1,5 +1,10 @@
 # Bootstrapping
 
+**6/21/2016**:
+
+I've been working on Naje. When I'm done it'll be a two pass assembler to
+allow for forward references.
+
 **6/17/2016**:
 
 When I began work on Retro I started with an assembler written in Toka. Though
