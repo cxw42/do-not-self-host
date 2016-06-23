@@ -109,6 +109,7 @@ class Compiler(StackingNodeVisitor):
         print(":Output\n  .data 0")
 
         # For conditionals
+        print(":not\n  lit -1\n  xor\n  ret")
         print(":true\n  lit -1\n  ret")
         print(":false\n  lit -1\n  ret")
         print(":equal\n  eq\n  lit &true\n  cjump\n  lit &false\n  jump")
@@ -151,14 +152,11 @@ class Compiler(StackingNodeVisitor):
         body = node[2]
 
         self.visit_node(condition)
-        print("[")
-#        print "\tJE " + false_label
-
+        print("  lit &not\n  call")
+        print("  lit &" + false_label)
+        print("  cjump")
         self.visit_node(body)
-
-        print("] if-true")
-
-#        print false_label + ":"
+        print(":" + false_label)
 
     def accept_condition(self, *node):
         operator = node[2]
