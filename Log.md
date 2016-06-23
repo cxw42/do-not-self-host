@@ -1,5 +1,16 @@
 # Bootstrapping
 
+**6/23/2016**:
+
+Good progress on the PL/0. Now finished loops, conditionals, fixed constants.
+Apart from Nga's lack of I/O (for implementing the ! function), it should now
+be ready to use.
+
+**6/22/2016**:
+
+Started work on the PL/0 compiler. Yesterday I implemented the basic math
+operations. Today I begin work on loops and conditionals.
+
 **6/21/2016**:
 
 I've been working on Naje. When I'm done it'll be a two pass assembler to
