@@ -39,12 +39,12 @@ ops = {
 }
 
 rel_ops = {
-    'LT'     : 'lt?',
-    'LTE'    : 'lteq?',
-    'GT'     : 'gt?',
-    'GTE'    : 'gteq?',
-    'E'      : 'eq?',
-    'NE'     : '-eq?',
+    'LT'     : ' lit &less\n  call',
+    'LTE'    : ' lit &lesseq\n  call',
+    'GT'     : ' lit &greater\n  call',
+    'GTE'    : ' lit &greatereq\n  call',
+    'E'      : ' lit &equal\n  call',
+    'NE'     : ' lit &not-equal\n  call',
 }
 
 class Compiler(StackingNodeVisitor):
@@ -104,7 +104,19 @@ class Compiler(StackingNodeVisitor):
 
     def accept_program(self, *node):
 #        print "JMP main"
+
+        # Stub for future display purposes
         print(":Output\n  .data 0")
+
+        # For conditionals
+        print(":true\n  lit -1\n  ret")
+        print(":false\n  lit -1\n  ret")
+        print(":equal\n  eq\n  lit &true\n  cjump\n  lit &false\n  jump")
+        print(":not-equal\n  neq\n  lit &true\n  cjump\n  lit &false\n  jump")
+        print(":less\n gt\n  lit &false\n  cjump\n  lit &true\n  jump")
+        print(":lesseq\n  lt\n  lit &true\n  cjump\n  lit &false\n  jump")
+        print(":greater\n  lt\n  lit &false\n  cjump\n  lit &true\n  jump")
+        print(":greatereq\n  gt\n  lit &true\n  cjump\n  lit &false\n  jump")
 
         print("\n# Globals")
         block = node[1]
@@ -122,18 +134,14 @@ class Compiler(StackingNodeVisitor):
         condition = node[1]
         loop = node[2]
 
-        print("[")
-#        print top_label + ":"
-        # Result of condition is on top of stack
-
-#        print "\tJE " + bottom_label
-
-        self.visit_node(loop)
-
-#        print "\tJMP " + top_label
-#        print bottom_label + ":"
+        print(":" + top_label)
         self.visit_node(condition)
-        print("] while")
+        print("  lit &" + bottom_label)
+        print("  cjump")
+        self.visit_node(loop)
+        print("  lit &" + top_label)
+        print("  jump")
+        print(":" + bottom_label)
 
 
     def accept_if(self, *node):
@@ -193,9 +201,9 @@ class Compiler(StackingNodeVisitor):
             self.visit_node(term[1])
 
             if term[0] == 'TIMES':
-                print(" *")
+                print("  multiply")
             elif term[0] == 'DIVIDES':
-                print(" / floor")
+                print("  divmod\n  drop")
 
     def accept_expression(self, *node):
         # Result of this expression will be on the top of stack
@@ -227,7 +235,7 @@ class Compiler(StackingNodeVisitor):
             print("  lit &" + value)
             print("  fetch")
         elif defined == 'CONSTANT':
-            print(" " + str(value))
+            print("  lit " + str(value))
         else:
             raise NameError("Invalid value name " + node[1] + " of type " + defined)
 
