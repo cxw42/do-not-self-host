@@ -3,7 +3,7 @@
 ngbasm is a minimalistic assembler for the ngb instruction set. It provides:
 
 * Two passes: assemble, then resolve lables
-* Lables
+* Labels
 * Basic literals
 * Symbolic names for all instructions
 * Facilities for inlining simple data
@@ -218,9 +218,9 @@ offset 0, which will be patched by a later routine.
 
 ````
 def preamble():
-    comma(1)  # LIT
+    comma(instrs['lit'])
     comma(0)  # value will be patched to point to :main
-    comma(7)  # JUMP
+    comma(instrs['jump'])
 
 ````
 
@@ -361,7 +361,7 @@ def resolve_labels():
         try:
             value = int(cell)
         except ValueError:
-            value = lookup(cell[1:])
+            value = lookup(cell[1:])  # Ignore the '&' at the start of the label
             if value == -1:
                 print('Label not found!')
                 exit()

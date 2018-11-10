@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <setjmp.h>
+#include <termios.h>
 
 // VM machine definitions and constraints
 
@@ -53,6 +54,26 @@ int max_sp, max_rp;
 
 static jmp_buf DONE;
 #define DONE_OK (-1)
+  // Flag: longjmp(DONE, DONE_OK) triggers a non-error exit
+
+static struct termios new_termios, old_termios;
+
+void init_terminal() {
+  if(!isatty(STDIN_FILENO)) return;
+  tcgetattr(0, &old_termios);
+  new_termios = old_termios;
+  new_termios.c_iflag &= ~(BRKINT|ISTRIP|IXON|IXOFF);
+  new_termios.c_iflag |= (IGNBRK|IGNPAR);
+  new_termios.c_lflag &= ~(ICANON|ISIG|IEXTEN|ECHO);
+  new_termios.c_cc[VMIN] = 1;
+  //new_termios.c_cc[VTIME] = 0;  // blocking reads
+  tcsetattr(STDIN_FILENO, TCSANOW, &new_termios);
+}
+
+void shutdown_terminal() {
+  if(!isatty(STDIN_FILENO)) return;
+  tcsetattr(STDIN_FILENO, TCSANOW, &old_termios);
+}
 
 CELL ngbLoadImage(char *imageFile) {
   FILE *fp;
@@ -328,8 +349,13 @@ void inst_out() {
 }
 
 void inst_cjump() {
-  fprintf(stderr,"CJUMP not yet implemented");
-  inst_end();
+  int a, b;
+
+  a = TOS; inst_drop();  /* Destination address */
+  b = TOS; inst_drop();  /* Flag  */
+  if (b != 0) {
+    ip = a - 1;
+  }
 }
 
 // Instruction table
@@ -363,6 +389,8 @@ int main(int argc, char **argv) {
 
   CELL opcode, i;
 
+  init_terminal();
+
   int retval = setjmp(DONE);
 
   if(retval == 0) {   // First time through: run it
@@ -384,6 +412,8 @@ int main(int argc, char **argv) {
 
   if(retval == DONE_OK) { retval = 0; }
     //because longjmp can't provide a 0 value
+
+  shutdown_terminal();
 
   int bot = sp-100;   // print up to the top 100 stack entries
   if(bot<1) { bot = 1; }
