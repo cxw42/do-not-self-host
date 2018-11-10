@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <setjmp.h>
 
 // VM machine definitions and constraints
 
@@ -47,6 +48,11 @@ int max_sp, max_rp;
 #define TOS  data[sp]
 #define NOS  data[sp-1]
 #define TORS address[rp]
+
+// Interactions with the OS
+
+static jmp_buf DONE;
+#define DONE_OK (-1)
 
 CELL ngbLoadImage(char *imageFile) {
   FILE *fp;
@@ -357,23 +363,37 @@ int main(int argc, char **argv) {
 
   CELL opcode, i;
 
-  ip = 0;
-  while (ip < IMAGE_SIZE) {
-    opcode = memory[ip];
-    if (opcode >= 0 && opcode < NUM_OPS) {
-      ngbProcessOpcode();
-    } else {
-      printf("Invalid instruction!\n");
-      printf("At %d, opcode %d\n", ip, opcode);
-      exit(1);
+  int retval = setjmp(DONE);
+
+  if(retval == 0) {   // First time through: run it
+
+    ip = 0;
+    while (ip < IMAGE_SIZE) {
+      opcode = memory[ip];
+      if (opcode >= 0 && opcode < NUM_OPS) {
+        ngbProcessOpcode();
+      } else {
+        printf("Invalid instruction!\n");
+        printf("At %d, opcode %d\n", ip, opcode);
+        exit(1);
+      }
+      ip++;
     }
-    ip++;
+
+  } //endif first time through
+
+  if(retval == DONE_OK) { retval = 0; }
+    //because longjmp can't provide a 0 value
+
+  int bot = sp-100;   // print up to the top 100 stack entries
+  if(bot<1) { bot = 1; }
+
+  for (i = bot; i <= sp; i++) {
+    printf("%8d: %d ", i, data[i]);
   }
 
-  for (i = 1; i <= sp; i++)
-    printf("%d ", data[i]);
   printf("\n");
-  exit(0);
+  exit(retval);
 }
 
 #endif

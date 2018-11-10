@@ -397,7 +397,7 @@ if __name__ == '__main__':
     else:
         save(sys.argv[2])
 
-    print(src)
+    # print(src)  # Useful for debugging
     print(labels)
     print(memory)
 
