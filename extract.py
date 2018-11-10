@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+# extract.py: Extract source from markdown files
 
+import sys
 import os
 
 def extract_from_markdown(name):
@@ -27,9 +29,4 @@ def convert(s, d):
             file.write('\n')
 
 if __name__ == '__main__':
-#    convert('Nga.md', 'generated/nga.c')
-#    convert('Nga_C_Interface.md', 'generated/interface.c')
-    convert('Naje.md', 'naje.py')
-#    convert('Nabk.md', 'generated/nabk.py')
-#    convert('Ngita.md', 'ngita.c')
-#    convert('MachineForth.md', 'mf.py')
+    convert(sys.argv[1], sys.argv[2])

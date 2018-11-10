@@ -9,6 +9,13 @@ updates :) .  However, I certainly welcome others who want to contribute.
 
 Assumes a development environment that provides stdin/stdout and redirection.
 
+## Current status
+
+* ngb: VM (in C)
+* ngbasm: assembler (in Python)
+
+## Notes
+
 Based on [crcx/Nga-Bootstrap](https://github.com/crcx/Nga-Bootstrap), which
 provides:
 

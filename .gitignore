@@ -1,0 +1,15 @@
+*.swp
+*~
+~*
+*.exe
+*.o
+*.obj
+*.a
+
+/future
+
+# Auto-extracted or generated files
+/ngbasm.py
+
+# VM bytecode files
+*.ngb
