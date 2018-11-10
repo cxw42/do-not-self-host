@@ -11,5 +11,8 @@
 # Auto-extracted or generated files
 /ngbasm.py
 
+# ngb assembly files
+*.nas
+
 # VM bytecode files
 *.ngb

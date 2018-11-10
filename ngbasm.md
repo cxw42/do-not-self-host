@@ -1,6 +1,6 @@
-# Naje
+# ngbasm
 
-Naje is a minimalistic assembler for the Nga instruction set. It provides:
+ngbasm is a minimalistic assembler for the ngb instruction set. It provides:
 
 * Two passes: assemble, then resolve lables
 * Lables
@@ -9,7 +9,7 @@ Naje is a minimalistic assembler for the Nga instruction set. It provides:
 * Facilities for inlining simple data
 * Directives for setting output filename
 
-Naje is intended to be a stepping stone for supporting larger applications.
+ngbasm is intended to be a stepping stone for supporting larger applications.
 It wasn't designed to be easy or fun to use, just to provide the essentials
 needed to build useful things.
 
@@ -20,20 +20,27 @@ short table:
 
     0  nop        7  jump      14  gt        21  and
     1  lit <v>    8  call      15  fetch     22  or
-    2  dup        9  cjump     16  store     23  xor
+    2  dup        9  ccall     16  store     23  xor
     3  drop      10  return    17  add       24  shift
     4  swap      11  eq        18  sub       25  zret
     5  push      12  neq       19  mul       26  end
     6  pop       13  lt        20  divmod
+
+ngb adds:
+
+    27 in
+    28 out
+    29 cjump
 
 All instructions except for **lit** are one cell long. **lit** takes two: one
 for the instruction and one for the value to push to the stack.
 
 ## Syntax
 
-Naje provides a simple syntax. A short example:
+ngbasm provides a simple syntax. A short example:
 
-    .output test.nga
+    ; Test.ngb
+    .output test.ngb
     :add
       add
       return
@@ -56,6 +63,7 @@ Naje provides a simple syntax. A short example:
 
 Delving a bit deeper:
 
+* Comment lines begin with a semicolon
 * Blank lines are ok and will be stripped out
 * One instruction (or assembler directive) per line
 * Labels start with a colon
@@ -64,15 +72,15 @@ Delving a bit deeper:
 
 ### Assembler Directives
 
-Naje provides two directives which can be useful:
+ngbasm provides two directives which can be useful:
 
 **.o**utput is used to set the name of the file that will be created with
 the Nga bytecode. If none is set, the filename will be defaulted to
-*output.nga*
+*output.ngb*
 
 Example:
 
-    .output sample.nga
+    .output sample.ngb
 
 **.d**ata is used to inline raw data into the generated image.
 
@@ -84,12 +92,12 @@ Example:
 
 ### Technical Notes
 
-Naje has a trivial parser. In deciding how to deal with a line, it will first
+ngbasm has a trivial parser. In deciding how to deal with a line, it will first
 strip it to its core elements, then proceed. So given a line like:
 
     lit 100 ... push 100 to the stack! ...
 
-Naje will take the first two characters of the first token (*li*) to identify
+ngbasm will take the first token (*lit*) to identify
 the instruction and the second token for the value. The rest is ignored.
 
 ## The Code
@@ -102,6 +110,7 @@ First up, the preamble, and some variables.
 | labels | stores a list of labels and pointers                |
 | memory | stores all values                                   |
 | i      | pointer to the current memory location              |
+| instrs | Dictionary of the ngb instructions and opcodes      |
 
 ````
 #!/usr/bin/env python3
@@ -112,6 +121,42 @@ labels = []
 resolve = []
 memory = []
 i = 0
+
+instrs = {
+    'nop': 0,
+    'lit': 1,
+    'dup': 2,
+    'drop': 3,
+    'swap': 4,
+    'push': 5,
+    'pop': 6,
+    'jump': 7,
+    'call': 8,
+    'ccall': 9,
+    'return': 10,
+    'eq': 11,
+    'neq': 12,
+    'lt': 13,
+    'gt': 14,
+    'fetch': 15,
+    'store': 16,
+    'add': 17,
+    'sub': 18,
+    'mul': 19,
+    'divmod': 20,
+    'and': 21,
+    'or': 22,
+    'xor': 23,
+    'shift': 24,
+    'zret': 25,
+    'end': 26,
+
+    # Not in nga
+    'in': 27,
+    'out': 28,
+    'cjump': 29,
+}
+
 ````
 
 The next two functions are for adding labels to the dictionary and searching
@@ -127,6 +172,7 @@ def lookup(id):
         if label[0] == id:
             return label[1]
     return -1
+
 ````
 
 **comma** is used to compile a value into memory.
@@ -139,6 +185,7 @@ def comma(v):
     except ValueError:
         memory.append(v)
     i = i + 1
+
 ````
 
 This next one maps a symbolic name to its opcode. It requires a two character
@@ -148,35 +195,8 @@ string (this is sufficent to identify any of the instructions).
 
 ````
 def map_to_inst(s):
-    inst = -1
-    if s == 'no': inst = 0
-    if s == 'li': inst = 1
-    if s == 'du': inst = 2
-    if s == 'dr': inst = 3
-    if s == 'sw': inst = 4
-    if s == 'pu': inst = 5
-    if s == 'po': inst = 6
-    if s == 'ju': inst = 7
-    if s == 'ca': inst = 8
-    if s == 'cj': inst = 9
-    if s == 're': inst = 10
-    if s == 'eq': inst = 11
-    if s == 'ne': inst = 12
-    if s == 'lt': inst = 13
-    if s == 'gt': inst = 14
-    if s == 'fe': inst = 15
-    if s == 'st': inst = 16
-    if s == 'ad': inst = 17
-    if s == 'su': inst = 18
-    if s == 'mu': inst = 19
-    if s == 'di': inst = 20
-    if s == 'an': inst = 21
-    if s == 'or': inst = 22
-    if s == 'xo': inst = 23
-    if s == 'sh': inst = 24
-    if s == 'zr': inst = 25
-    if s == 'en': inst = 26
-    return inst
+    return instrs.get(s, -1)
+
 ````
 
 This next function saves the memory image to a file.
@@ -189,6 +209,7 @@ def save(filename):
         while j < i:
             file.write(struct.pack('i', memory[j]))
             j = j + 1
+
 ````
 
 An image starts with a jump to the main entry point (the *:main* label).
@@ -200,6 +221,7 @@ def preamble():
     comma(1)  # LIT
     comma(0)  # value will be patched to point to :main
     comma(7)  # JUMP
+
 ````
 
 **patch_entry()** replaces the target of the jump compiled by **preamble()**
@@ -207,11 +229,16 @@ with the offset of the *:main* label.
 
 ````
 def patch_entry():
-    memory[1] = lookup('main')
+    main_addr = lookup('main')
+    if main_addr == -1:
+        print('main not defined - add a :main line')
+        exit(1)
+    memory[1] = main_addr
+
 ````
 
 A source file consists of a series of lines, with one instruction (or label)
-per line. While minimalistic, Naje does allow for blank lines and indention.
+per line. While minimalistic, ngbasm does allow for blank lines and indention.
 This function strips out the leading and trailing whitespace as well as blank
 lines so that the rest of the assembler doesn't need to deal with it.
 
@@ -231,6 +258,7 @@ def load_source(filename):
     with open(filename, 'r') as f:
         raw = f.readlines()
     return clean_source(raw)
+
 ````
 
 We now have a couple of routines that are intended to make future maintenance
@@ -239,13 +267,13 @@ these do.
 
 ````
 def is_label(token):
-    if token[0:1] == ':':
+    if token[0] == ':':
         return True
     else:
         return False
 
 def is_directive(token):
-    if token[0:1] == '.':
+    if token[0] == '.':
         return True
     else:
         return False
@@ -255,6 +283,7 @@ def is_inst(token):
         return False
     else:
         return True
+
 ````
 
 Ok, now for a somewhat messier bit. The **LIT** instruction is two part: the
@@ -277,6 +306,7 @@ def handle_lit(line):
     except:
         xt = str(parts[1])
         comma(xt)
+
 ````
 
 For assembler directives we have a single handler. There are currently two
@@ -286,9 +316,10 @@ directives; one for setting the **output** filename and one for inlining data.
 def handle_directive(line):
     global output
     parts = line.split()
-    token = line[0:2]
-    if token == '.o': output = parts[1]
-    if token == '.d': comma(int(parts[1]))
+    token = parts[0]
+    if token[0:2] == '.o': output = parts[1]
+    if token[0:2] == '.d': comma(int(parts[1]))
+
 ````
 
 Now for the meat of the assembler. This takes a single line of input, checks
@@ -297,8 +328,12 @@ calling whatever helper functions are needed (**handle_lit()** being notable).
 
 ````
 def assemble(line):
-    token = line[0:2]
-    if is_label(token):
+    parts = line.split()
+    token = parts[0]
+
+    if token[0] == ';':     # Comment
+        pass
+    elif is_label(token):
         labels.append((line[1:], i))
         print('label = ', line, '@', i)
     elif is_directive(token):
@@ -312,6 +347,7 @@ def assemble(line):
         print('Line was not a label or instruction.')
         print(line)
         exit()
+
 ````
 
 **resolve_labels()** is the second pass; it converts any labels into addresses.
@@ -331,6 +367,7 @@ def resolve_labels():
                 exit()
         results.append(value)
     memory = results
+
 ````
 
 And finally we can tie everything together into a coherent package.
@@ -348,12 +385,13 @@ if __name__ == '__main__':
     preamble()
     for line in src:
         assemble(line)
+    assemble('end')     # Always at the end, just to be safe
     resolve_labels()
     patch_entry()
 
     if len(sys.argv) < 3:
         if output == '':
-            save('output.nga')
+            save('output.ngb')
         else:
             save(output)
     else:
@@ -362,4 +400,5 @@ if __name__ == '__main__':
     print(src)
     print(labels)
     print(memory)
+
 ````

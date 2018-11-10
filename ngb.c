@@ -136,6 +136,8 @@ void ngbDisplayStats()
   printf("Total opcodes processed: %d\n", i);
 }
 
+// VM instructions =========================================================
+
 void inst_nop() {
 }
 
@@ -309,13 +311,14 @@ void inst_end() {
 // Not in nga
 
 void inst_in() {
-  fprintf(stderr,"IN not yet implemented");
-  inst_end();
+  sp++;
+  TOS = getc(stdin);
+  ngbStatsCheckMax();
 }
 
 void inst_out() {
-  fprintf(stderr,"OUT not yet implemented");
-  inst_end();
+  printf("%c", (char)(data[sp]&0xff));
+  sp--;
 }
 
 void inst_cjump() {
@@ -335,6 +338,8 @@ Handler instructions[NUM_OPS] = {
   inst_out,
   inst_cjump,
 };
+
+// Interpreter =============================================================
 
 void ngbProcessOpcode() {
   stats[memory[ip]]++;
