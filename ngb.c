@@ -32,6 +32,7 @@ enum vm_opcode {
   VM_IN,    // getc
   VM_OUT,   // putc
   VM_CJUMP,
+  VM_ISEOF,
 
   NUM_OPS
 };
@@ -358,6 +359,11 @@ void inst_cjump() {
   }
 }
 
+void inst_iseof() {
+    sp++;
+    TOS = (NOS == -1 ? -1 : 0);
+}
+
 // Instruction table
 typedef void (*Handler)(void);
 
@@ -369,6 +375,7 @@ Handler instructions[NUM_OPS] = {
   inst_in,
   inst_out,
   inst_cjump,
+  inst_iseof,
 };
 
 // Interpreter =============================================================

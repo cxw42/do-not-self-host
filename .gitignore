@@ -11,9 +11,5 @@
 # Auto-extracted or generated files
 /ngbasm.py
 
-# Ignore ngb assembly files, except in any "examples" directory.
-*.nas
-!examples/*.nas
-
 # VM bytecode files
 *.ngb
