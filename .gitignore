@@ -13,3 +13,10 @@
 
 # VM bytecode files
 *.ngb
+
+# Support files
+*.xlsx
+*.xls
+*.svg
+*.txt
+*.csv
