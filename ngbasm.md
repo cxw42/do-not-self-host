@@ -61,6 +61,9 @@ ngbasm provides a simple syntax. A short example:
 Delving a bit deeper:
 
 * Comment lines begin with a semicolon
+* Comments are OK on the same line as code, provided there is whitespace
+  before the semicolon that starts the comment.  (Otherwise you wouldn't
+  be able to do `';`.)
 * Blank lines are ok and will be stripped out
 * One instruction (or assembler directive) per line
 * Labels start with a colon
@@ -283,12 +286,8 @@ comments on the same line as operations.
 def clean_source(raw):
     cleaned = []
     for line in raw:    # permit comments to EOL
-        cleaned.append(re.sub(r';.*$','',line).strip())
-    final = []
-    for line in cleaned:
-        if line != '':
-            final.append(line)
-    return final
+        cleaned.append(re.sub(r'(^|\s);.*$','',line).strip())
+    return cleaned  # keep blank lines so the line numbers work out
 
 
 def load_source(filename):
@@ -333,7 +332,17 @@ def operand_value(token):
     if token[0] == "'":     # ASCII character
         return ord(token[1])
     else:
-        return consts.get(token,token)
+        while token in consts: token = consts[token]
+        return token
+
+````
+
+We can load cells with arbitrary values using `.data`.
+
+````
+def handle_data(parts):     # data: Raw cell value.
+    val = operand_value(parts[1])
+    comma(val)
 
 ````
 
@@ -369,6 +378,7 @@ def handle_const(parts):
         print('.const <name> <value> missing arguments @', i)
         exit(1)
     consts[parts[1]] = operand_value(parts[2])
+    print('const {} <= {}'.format(parts[1], consts[parts[1]]))
 
 ````
 
@@ -400,9 +410,7 @@ def handle_directive(parts):
     global output_filename
     token = parts[0]
     if token[0:2] == '.o': output_filename = parts[1]
-    elif token[0:2] == '.d':    # data: Raw cell value.  Can't use &label.
-        val = operand_value(parts[1])
-        comma(int(val))
+    elif token[0:2] == '.d': handle_data(parts)
     elif token[0:2] == '.l': handle_lit(parts)
     elif token[0:2] == '.i': handle_include(parts)
     elif token[0:2] == '.c': handle_const(parts)
@@ -418,6 +426,11 @@ on the input line.
 
 ````
 def assemble(lineno, line):
+    # Super-simple debug assistance
+    print('{}:{}'.format(filenames[-1], lineno))
+
+    if line == '': return
+
     parts = line.split()
     token = parts[0]
 
