@@ -189,7 +189,7 @@ void inst_drop() {
 }
 
 void inst_swap() {
-  int a;
+  CELL a;
   a = TOS;
   TOS = NOS;
   NOS = a;
@@ -222,7 +222,7 @@ void inst_call() {
 }
 
 void inst_ccall() {
-  int a, b;
+  CELL a, b;
   rp++;
   TORS = ip;
   a = TOS; inst_drop();  /* Destination address */
@@ -294,7 +294,7 @@ void inst_mul() {
 }
 
 void inst_divmod() {
-  int a, b;
+  CELL a, b;
   a = TOS;
   b = NOS;
   TOS = b / a;
@@ -341,6 +341,9 @@ void inst_end() {
 void inst_in() {
   sp++;
   TOS = getc(stdin);
+#ifdef _DEBUG
+  printf("\nGot char %d\n", TOS);   // DEBUG
+#endif
   ngbStatsCheckMax();
 }
 
@@ -350,7 +353,7 @@ void inst_out() {
 }
 
 void inst_cjump() {
-  int a, b;
+  CELL a, b;
 
   a = TOS; inst_drop();  /* Destination address */
   b = TOS; inst_drop();  /* Flag  */
@@ -361,7 +364,11 @@ void inst_cjump() {
 
 void inst_iseof() {
     sp++;
-    TOS = (NOS == -1 ? -1 : 0);
+    TOS = ( (NOS == -1) || (NOS == 4) ? -1 : 0);
+        // Ctl-D (4) is also EOF
+#ifdef _DEBUG
+    printf("\nCharacter %s EOF\n", TOS ? "was" : "was not");    // DEBUG
+#endif
 }
 
 // Instruction table
@@ -377,6 +384,22 @@ Handler instructions[NUM_OPS] = {
   inst_cjump,
   inst_iseof,
 };
+
+#ifdef _DEBUG
+char *instr_names[NUM_OPS] = {
+  "nop", "lit", "dup", "drop", "swap", "push", "pop",
+  "jump", "call", "ccall", "return", "eq", "neq", "lt",
+  "gt", "fetch", "store", "add", "sub", "mul", "divmod",
+  "and", "or", "xor", "shift", "zret", "end",
+  "in",
+  "out",
+  "cjump",
+  "iseof",
+};
+#endif
+
+
+
 
 // Interpreter =============================================================
 
@@ -401,16 +424,27 @@ int main(int argc, char **argv) {
   int retval = setjmp(DONE);
 
   if(retval == 0) {   // First time through: run it
+#ifdef _DEBUG
+    printf("addr\topcode\tname\tpreTOS\tpostTOS\n");
+#endif
 
     ip = 0;
     while (ip < IMAGE_SIZE) {
       opcode = memory[ip];
       if (opcode >= 0 && opcode < NUM_OPS) {
+#ifdef _DEBUG
+        printf("%d\t%d\t%s\t%d", ip, opcode, instr_names[opcode], TOS);
+#endif
         ngbProcessOpcode();
+#ifdef _DEBUG
+        printf("\t%d\n", TOS);
+#endif
+
       } else {
         printf("Invalid instruction!\n");
         printf("At %d, opcode %d\n", ip, opcode);
-        exit(1);
+        retval = 1;
+        break;
       }
       ip++;
     }
