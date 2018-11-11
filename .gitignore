@@ -10,6 +10,7 @@
 
 # Auto-extracted or generated files
 /ngbasm.py
+*.geninc
 
 # VM bytecode files
 *.ngb

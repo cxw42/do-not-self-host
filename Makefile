@@ -6,6 +6,4 @@ all: ngb ngbasm.py
 	./extract.py $^ $@
 	chmod a+x $@
 
-%: %.c
-	gcc -o $@ $<
-
+# Default rule for %: %.c
