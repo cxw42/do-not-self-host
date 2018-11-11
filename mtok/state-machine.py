@@ -29,8 +29,14 @@ import sys
 import csv
 
 if len(sys.argv)<2:
-    print('state-machine.py <inputfile.csv>')
+    print('''\
+Usage: state-machine.py <inputfile.csv> [which]'
+Output is to stdout.
+Optional "which" is "table" or "machine" (default both).
+''')
     exit(1)
+
+### Read ################################################################
 
 states = []     # in order, so we can make a jump table
 
@@ -56,9 +62,26 @@ with open(sys.argv[1], newline='') as csvfile:
     # next row
 # end reader
 
-# Generate the state table
-print('''
+### Table ###############################################################
+
+if len(sys.argv)<3 or sys.argv[2] == 'table':
+    print('''
+; State table
+; zero-based so they can be used in a jump table
+    ''')
+
+    for idx, state in enumerate(states):
+        print('.const S_{} {}'.format(state['name'], idx))
+
+### Machine #############################################################
+# Generate the state machine
+
+if len(sys.argv)<3 or sys.argv[2] == 'machine':
+    print('''
 ; === State machine ========================================================
+
+.const S_COMPLETE 65534     ; a token is complete
+;.const S_NONE 65535
 
 ; Jump table for state routines.  Call this.
 ; Inputs are:
@@ -70,89 +93,101 @@ print('''
 
 :get_next_state
     .lit &state_handler_list    ; cclass state baseaddr ]
-    add                         ; cclass jumpaddr ]
+    add                         ; cclass; addr of the pointer ]
+    fetch                       ; cclass; addr of the routine ]
     jump    ; to the right routine for this state.  ; cclass ]
 :state_handler_list
 ''')
 
-for state in states:
-    print('.lit &state_handler_'+state['name'])
-# next state
+    for state in states:
+        print('.data &state_handler_'+state['name'])
+    # next state
 
-print('''
+    print('''
 ; Handler routines.
 ; Input: the current input type on the top of the stack
 ; Output: the new state on top of the stack, if any.
 ;         Aborts the program if no match.
 ''')
 
-for state in states:
-    print(':state_handler_{} ;-----------'.format(state['name']))
-    transition_num = 0
-    for input_id, next_state in state['transitions'].items():
-        # Generate the test for this transition.  The .lit+store
-        print('''\
-:sh_{}_{}
-    dup
-    neq {}
-    cjump sh_{}_{}
-    .lit S_{}
+    for state in states:
+        print(':state_handler_{} ;-----------'.format(state['name']))
+        transition_num = 0
+        for input_id, next_state in state['transitions'].items():
+            # Generate the test for this transition.  The .lit+store
+            print('''\
+:sh_{}_{}           ; cclass ]
+    dup             ; cclass cclass ]
+    neq {}          ; cclass flag ]
+    cjump &sh_{}_{} ; cclass ]
+    drop            ; ]
+    .lit S_{}       ; new state ]
     return
 '''.format(state['name'], transition_num, input_id,
                state['name'], transition_num + 1, next_state))
-        transition_num = transition_num + 1
-    # next transition
+            transition_num = transition_num + 1
+        # next transition
 
-    # Unrecognized input: If it's an accepting state, we're done with this
-    # token.  Otherwise, abort.  TODO handle this better.
-    print('''\
+        # Unrecognized input: If it's an accepting state, we're done with this
+        # token.  Otherwise, abort.  TODO handle this better.
+        print('''\
 :sh_{}_{}
     {}
 '''.format(state['name'], transition_num,
-        '''.lit S_COMPLETE
+        '''\
+    drop                ; ]
+    .lit S_COMPLETE     ; COMPLETE ]
     return''' if state['accepting'] else 'end'))
-# next state
 
-# Generate the skeleton of the emit_token table
-print('''
+    # next state
+
+    # Generate the skeleton of the emit_token table
+    print('''
 ; === Emitter ==============================================================
 
-; Jump table for emitting.  The accepting state should be on the TOS on input.
+.const EMIT_CHAR 0
+
+; Jump table for emitting.
+; Input: TOS: The accepting state
+;        NOS: The character that got us to this state
 ; Call this.
-:emit_token
-    .lit &emit_token_list       ; next_state baseaddr ]
-    add                         ; jumpaddr ]
-    jump    ; to the right routine for this state.  ; ]
+:emit_token                     ; char accepting_state
+    .lit &emit_token_list       ; char accepting_state baseaddr ]
+    add                         ; char addr of the pointer ]
+    fetch                       ; char addr of the routine ]
+    jump    ; to the right routine for this state.  ; char ]
 :emit_err
     end     ; TODO handle this better
 
 :emit_token_list
 ''')
 
-for state in states:
-    if state['accepting']:
-        print('.lit &emit_handler_'+state['name'])
-    else:
-        print('.lit &emit_err')
+    for state in states:
+        if state['accepting']:
+            print('.data &emit_handler_'+state['name'])
+        else:
+            print('.data &emit_err')
+    # next state
 
-print('''
+    print('''
 ; Emit routines
 ''')
 
-for state in states:
-    if not state['accepting']: continue
-    print('''
-:emit_handler_{}
-    out TODO
-    return'''.format(state['name']))
-# next state
-
-# For convenience, generate a state table
-print('''
-; STATE TABLE - TODO move this up
-; zero-based so they can be used in a jump table
-''')
-
-for idx, state in enumerate(states):
-    print('.const S_{} {}'.format(state['name'], idx))
+    for state in states:
+        if not state['accepting']: continue
+        # The actual things to emit are defined in the caller's program so
+        # the don't get blown away when this is re-run
+        print('''
+:emit_handler_{0}           ; char ]
+    .lit E_{0}              ; char tok ]
+    eq EMIT_CHAR            ; char flag ]
+    cjump &emit_self_{0}    ; char ]
+    out E_{0}
+    drop                    ; ]
+    return
+:emit_self_{0}              ; char ]
+    out                     ; ]
+    return
+    '''.format(state['name']))
+    # next state
 
