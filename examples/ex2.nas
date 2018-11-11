@@ -1,10 +1,13 @@
-; ex1.nas: a simple test of ngb.  By cxw42, 2018.  MIT.
+; ex2.nas: a simple test of ngbasm include files and constants.
+; By cxw42, 2018.  MIT.
+
+.const answer 42
 :main
 
   ; Put something on the stack, just so we'll see it when ngb exits.
-  .lit 42
+  .lit answer
 
-  out 65 ; Print "A" so we know we're alive.
+  .include ex2-include.nas
 
   ; Loop echoing character+1 until space bar is pressed
 :loop

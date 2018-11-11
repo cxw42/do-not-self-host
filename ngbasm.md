@@ -69,7 +69,7 @@ Delving a bit deeper:
 
 ### Assembler Directives
 
-ngbasm provides three directives which can be useful:
+ngbasm provides some directives which can be useful:
 
 **.o**utput is used to set the name of the file that will be created with
 the Nga bytecode. If none is set, the filename will be defaulted to
@@ -89,6 +89,20 @@ Example:
 
 **.l**it is used to push a literal onto the stack.  That is, `.lit` is
 actually the `lit` instruction.  This is to make the parser simpler.
+
+**.i**include inlines another file as if it had been typed right at
+the point of the include.
+
+Example:
+
+    .include foo.nas
+
+**.c**onst defines constants.
+
+Example:
+
+    .const foo 42
+    .lit foo    ; equivalent to .lit 42
 
 ### Technical Notes
 
@@ -116,7 +130,7 @@ First up, the preamble, and some variables.
 
 | name   | usage                                               |
 | ------ | --------------------------------------------------- |
-| output | stores the name of the file for the assembled image |
+| output_filename | stores the name of the file for the assembled image |
 | labels | stores a list of labels and pointers                |
 | memory | stores all values                                   |
 | i      | pointer to the current memory location              |
@@ -125,13 +139,23 @@ First up, the preamble, and some variables.
 ````
 #!/usr/bin/env python3
 import sys
+import os
+import re
 
-output = ''
+output_filename = ''
 labels = []
 resolve = []
 memory = []
 i = 0
 
+# Stack of filenames we are processing.  The current file being assembled
+# is always filenames[-1].
+filenames = []
+
+# Constants we know about
+consts = {}
+
+# Instruction -> opcode mapping
 instrs = {
     'nop': 0,
     ' lit': 1,  # leading whitespace so it can't be assembled
@@ -251,12 +275,14 @@ A source file consists of a series of lines, with one instruction (or label)
 per line. While minimalistic, ngbasm does allow for blank lines and indention.
 This function strips out the leading and trailing whitespace as well as blank
 lines so that the rest of the assembler doesn't need to deal with it.
+It also strips from a semicolon to the end of the line so you can put
+comments on the same line as operations.
 
 ````
 def clean_source(raw):
     cleaned = []
-    for line in raw:
-        cleaned.append(line.strip())
+    for line in raw:    # permit comments to EOL
+        cleaned.append(re.sub(r';.*$','',line).strip())
     final = []
     for line in cleaned:
         if line != '':
@@ -296,6 +322,20 @@ def is_inst(token):
 
 ````
 
+We also permit various forms of operand: literal number, ASCII character,
+label, or constant.  This routine maps non-number forms to numbers.  It does
+not call `int()` on the result, however, since the result might be a label
+string such as `&main`.
+
+````
+def operand_value(token):
+    if token[0] == "'":     # ASCII character
+        return ord(token[1])
+    else:
+        return consts.get(token,token)
+
+````
+
 Ok, now for a somewhat messier bit. The **LIT** instruction is two part: the
 first is the actual opcode (1), the second (stored in the following cell) is
 the value to push to the stack. A source line is setup like:
@@ -308,15 +348,46 @@ But in the second, we need to lookup the *:increment* label and compile a
 pointer to it.
 
 ````
-def handle_lit(line):
-    parts = line.split()
+def handle_lit(parts):
     comma(instrs[' lit'])
+    val = operand_value(parts[1])
     try:
-        a = int(parts[1])
+        a = int(val)
         comma(a)
     except:
-        xt = str(parts[1])
+        xt = str(val)
         comma(xt)
+
+````
+
+We can also define constants.
+
+````
+def handle_const(parts):
+    if len(parts) < 3:
+        print('.const <name> <value> missing arguments @', i)
+        exit(1)
+    consts[parts[1]] = operand_value(parts[2])
+
+````
+
+We can also include files, e.g., to share constants.
+
+````
+def handle_include(parts):
+    filename = parts[1]
+    # Look for include file relative to the file we are currently processing
+    this_file_path = os.path.normpath(os.path.join(
+            os.path.dirname(os.path.realpath(os.path.abspath(filenames[-1]))),
+            filename
+    ))
+    print('Including ', this_file_path, ' @', i)
+
+    filenames.append(this_file_path)
+    src = load_source(this_file_path)
+    for (lineno, line) in enumerate(src):
+        assemble(lineno, line)
+    filenames.pop()
 
 ````
 
@@ -324,13 +395,16 @@ For assembler directives we have a single handler. There are currently two
 directives; one for setting the **output** filename and one for inlining data.
 
 ````
-def handle_directive(line):
-    global output
-    parts = line.split()
+def handle_directive(parts):
+    global output_filename
     token = parts[0]
-    if token[0:2] == '.o': output = parts[1]
-    if token[0:2] == '.d': comma(int(parts[1]))
-    if token[0:2] == '.l': handle_lit(line)
+    if token[0:2] == '.o': output_filename = parts[1]
+    elif token[0:2] == '.d':    # data: Raw cell value.  Can't use &label.
+        val = operand_value(parts[1])
+        comma(int(val))
+    elif token[0:2] == '.l': handle_lit(parts)
+    elif token[0:2] == '.i': handle_include(parts)
+    elif token[0:2] == '.c': handle_const(parts)
 
 ````
 
@@ -338,8 +412,11 @@ Now for the meat of the assembler. This takes a single line of input, checks
 to see if it's a label or instruction, and lays down the appropriate code,
 calling whatever helper functions are needed (**handle_lit()** being notable).
 
+Note that `assemble()` assumes that `clean_source()` has already been called
+on the input line.
+
 ````
-def assemble(line):
+def assemble(lineno, line):
     parts = line.split()
     token = parts[0]
 
@@ -349,7 +426,7 @@ def assemble(line):
         labels.append((line[1:], i))
         print('label = ', line, '@', i)
     elif is_directive(token):
-        handle_directive(line)
+        handle_directive(parts)
     elif is_inst(token):
         op = map_to_inst(token)
         if op == -1:
@@ -357,12 +434,12 @@ def assemble(line):
             exit(1)
 
         if len(parts) > 1:
-            handle_lit('.lit ' + parts[1])
+            handle_lit(('.lit ', parts[1]))
 
         comma(op)
     else:
-        print('Line was not a label or instruction.')
-        print(line)
+        print('Line was not something I know how to handle.')
+        print(lineno, ': ', line)
         exit()
 
 ````
@@ -380,7 +457,7 @@ def resolve_labels():
         except ValueError:
             value = lookup(cell[1:])  # Ignore the '&' at the start of the label
             if value == -1:
-                print('Label not found!')
+                print('Label ', cell, ' not found!')
                 exit()
         results.append(value)
     memory = results
@@ -393,24 +470,27 @@ And finally we can tie everything together into a coherent package.
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         raw = []
+        # Dummy filename based on current dir
+        filenames.append(os.path.join(os.getcwd(),'standard-input'))
         for line in sys.stdin:
             raw.append(line)
         src = clean_source(raw)
     else:
+        filenames.append(sys.argv[1])
         src = load_source(sys.argv[1])
 
     preamble()
-    for line in src:
-        assemble(line)
-    assemble('end')     # Always at the end, just to be safe
+    for (lineno, line) in enumerate(src):
+        assemble(lineno, line)
+    assemble(-1, 'end') # Always at the end, just to be safe
     resolve_labels()
     patch_entry()
 
     if len(sys.argv) < 3:
-        if output == '':
+        if output_filename == '':
             save('output.ngb')
         else:
-            save(output)
+            save(output_filename)
     else:
         save(sys.argv[2])
 
