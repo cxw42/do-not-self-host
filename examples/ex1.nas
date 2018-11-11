@@ -2,11 +2,10 @@
 :main
 
   ; Put something on the stack, just so we'll see it when ngb exits.
-  lit 42
+  .lit 42
 
   ; Print "A" so we know we're alive.
-  lit 65
-  out
+  out 65
 
   ; Loop echoing character+1 until space bar is pressed
 :loop
@@ -14,19 +13,15 @@
 
   ; Is it a space?
   dup
-  lit 32
-  eq
+  eq 32
 
   ; If so, we're done.
-  lit &done
-  cjump
+  cjump &done
 
   ; Otherwise, bump it, print it, and loop around.
-  lit 1
-  add
+  add 1
   out
-  lit &loop
-  jump
+  jump &loop
 
 :done
   ; Remove the leftover copy of the character that we didn't `out`

@@ -48,17 +48,14 @@ ngbasm provides a simple syntax. A short example:
       sub
       return
     :increment
-      lit 1
-      lit &add
-      call
+      .lit 1
+      call &add
       return
     :main
-      lit 100
-      lit 95
-      lit &subtract
-      call
-      lit &increment
-      call
+      .lit 100
+      .lit 95
+      call &subtract
+      call &increment
       end
 
 Delving a bit deeper:
@@ -67,12 +64,12 @@ Delving a bit deeper:
 * Blank lines are ok and will be stripped out
 * One instruction (or assembler directive) per line
 * Labels start with a colon
-* A **lit** can be followed by a number or a label name
+* A **.lit** can be followed by a number or a label name
 * References to labels must start with an &
 
 ### Assembler Directives
 
-ngbasm provides two directives which can be useful:
+ngbasm provides three directives which can be useful:
 
 **.o**utput is used to set the name of the file that will be created with
 the Nga bytecode. If none is set, the filename will be defaulted to
@@ -90,15 +87,28 @@ Example:
     .data 99
     .data 100
 
+**.l**it is used to push a literal onto the stack.  That is, `.lit` is
+actually the `lit` instruction.  This is to make the parser simpler.
+
 ### Technical Notes
 
 ngbasm has a trivial parser. In deciding how to deal with a line, it will first
 strip it to its core elements, then proceed. So given a line like:
 
-    lit 100 ... push 100 to the stack! ...
+    .lit 100 ... push 100 to the stack! ...
 
-ngbasm will take the first token (*lit*) to identify
+ngbasm will take the first token (*.lit*) to identify
 the instruction and the second token for the value. The rest is ignored.
+
+For instructions (not labels or directives), any argument will be assembled
+into a `lit` instruction (not directive).  For example:
+
+    jump &foo
+
+is actually assembled as:
+
+    .lit &foo
+    jump
 
 ## The Code
 
@@ -124,7 +134,7 @@ i = 0
 
 instrs = {
     'nop': 0,
-    'lit': 1,
+    ' lit': 1,  # leading whitespace so it can't be assembled
     'dup': 2,
     'drop': 3,
     'swap': 4,
@@ -218,7 +228,7 @@ offset 0, which will be patched by a later routine.
 
 ````
 def preamble():
-    comma(instrs['lit'])
+    comma(instrs[' lit'])
     comma(0)  # value will be patched to point to :main
     comma(instrs['jump'])
 
@@ -290,8 +300,8 @@ Ok, now for a somewhat messier bit. The **LIT** instruction is two part: the
 first is the actual opcode (1), the second (stored in the following cell) is
 the value to push to the stack. A source line is setup like:
 
-    lit 100
-    lit &increment
+    .lit 100
+    .lit &increment
 
 In the first case, we want to compile the number 100 in the following cell.
 But in the second, we need to lookup the *:increment* label and compile a
@@ -300,6 +310,7 @@ pointer to it.
 ````
 def handle_lit(line):
     parts = line.split()
+    comma(instrs[' lit'])
     try:
         a = int(parts[1])
         comma(a)
@@ -319,6 +330,7 @@ def handle_directive(line):
     token = parts[0]
     if token[0:2] == '.o': output = parts[1]
     if token[0:2] == '.d': comma(int(parts[1]))
+    if token[0:2] == '.l': handle_lit(line)
 
 ````
 
@@ -340,9 +352,14 @@ def assemble(line):
         handle_directive(line)
     elif is_inst(token):
         op = map_to_inst(token)
+        if op == -1:
+            print('Unknown instruction ', token)
+            exit(1)
+
+        if len(parts) > 1:
+            handle_lit('.lit ' + parts[1])
+
         comma(op)
-        if op == 1:
-            handle_lit(line)
     else:
         print('Line was not a label or instruction.')
         print(line)
