@@ -105,6 +105,8 @@ Example:
     .const foo 42
     lit foo    ; equivalent to lit 42
 
+Predefined constants are `true` (`-1`), and `false` (`0`).
+
 ### Technical Notes
 
 ngbasm has a trivial parser. In deciding how to deal with a line, it will first
@@ -153,8 +155,8 @@ i = 0
 # is always filenames[-1].
 filenames = []
 
-# Constants we know about
-consts = {}
+# Constants we know about.  Preload with true and false.
+consts = { 'true': -1, 'false': 0 }
 
 # Instruction -> opcode mapping
 instrs = {

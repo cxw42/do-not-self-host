@@ -16,11 +16,13 @@
 
 // VM machine definitions and constraints
 
-#define CELL         int32_t
-#define IMAGE_SIZE   262144
-#define ADDRESSES    128
-#define STACK_DEPTH  32
-#define CELLSIZE     32
+#define VM_TRUE     (-1)
+#define VM_FALSE    (0)
+#define CELL        int32_t
+#define IMAGE_SIZE  262144
+#define ADDRESSES   128
+#define STACK_DEPTH 32
+#define CELLSIZE    32
 
 enum vm_opcode {
   VM_NOP,  VM_LIT,    VM_DUP,   VM_DROP,    VM_SWAP,   VM_PUSH,  VM_POP,
@@ -227,7 +229,7 @@ void inst_ccall() {
   TORS = ip;
   a = TOS; inst_drop();  /* Destination address */
   b = TOS; inst_drop();  /* Flag  */
-  if (b != 0)
+  if (b != VM_FALSE)
     ip = a - 1;
 }
 
@@ -238,33 +240,33 @@ void inst_return() {
 
 void inst_eq() {
   if (NOS == TOS)
-    NOS = -1;
+    NOS = VM_TRUE;
   else
-    NOS = 0;
+    NOS = VM_FALSE;
   inst_drop();
 }
 
 void inst_neq() {
   if (NOS != TOS)
-    NOS = -1;
+    NOS = VM_TRUE;
   else
-    NOS = 0;
+    NOS = VM_FALSE;
   inst_drop();
 }
 
 void inst_lt() {
   if (NOS < TOS)
-    NOS = -1;
+    NOS = VM_TRUE;
   else
-    NOS = 0;
+    NOS = VM_FALSE;
   inst_drop();
 }
 
 void inst_gt() {
   if (NOS > TOS)
-    NOS = -1;
+    NOS = VM_TRUE;
   else
-    NOS = 0;
+    NOS = VM_FALSE;
   inst_drop();
 }
 
