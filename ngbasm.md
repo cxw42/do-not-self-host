@@ -31,6 +31,7 @@ ngb adds:
     27 in
     28 out
     29 cjump
+    30 iseof
 
 All instructions except for **lit** are one cell long. **lit** takes two: one
 for the instruction and one for the value to push to the stack.

@@ -3,6 +3,33 @@
 
 .include ../minhi-constants.nas
 
+; === Globals ==============================================================
+
+:state
+    .data 0
+
+; ASCII values of the current and next char (if any)
+:curr_char
+    .data 0
+;:nextchar
+;    .data 0
+
+; Character classes of the current char
+;:issigil
+;    .data 0
+;:isalpha
+;    .data 0
+;:isalnum
+;    .data 0
+;:isdigit
+;    .data 0
+;:isnonquote     ; valid in a string: [^']
+;    .data 0
+;:ispunc         ; single-char operator punctuation: [()"\[\]^-*/%+,;]
+;    .data 0
+
+; === Language =============================================================
+
 ; Try 3
 ; This tokenizer recognizes the language:
 ;   <sigil><alpha>(<alpha>|<specialalpha...>|<digit>)*
@@ -72,31 +99,6 @@
 ; === State machine and emitters ===========================================
 
 .include state-machine.geninc
-
-; === Globals ==============================================================
-
-:state
-    .data 0
-
-; ASCII values of the current and next char (if any)
-:curr_char
-    .data 0
-;:nextchar
-;    .data 0
-
-; Character classes of the current char
-;:issigil
-;    .data 0
-;:isalpha
-;    .data 0
-;:isalnum
-;    .data 0
-;:isdigit
-;    .data 0
-;:isnonquote     ; valid in a string: [^']
-;    .data 0
-;:ispunc         ; single-char operator punctuation: [()"\[\]^-*/%+,;]
-;    .data 0
 
 ; === Get character class ==================================================
 
@@ -257,7 +259,7 @@
 ; === Main =================================================================
 :main
 
-    ; Initialize
+    ; Initialize: start in state A
     lit S_A
     store &state
 
@@ -272,11 +274,13 @@
     fetch &state            ; cclass state ]
     call &get_next_state    ; next_state ]
 
+    ; Did we finish a token?
     dup                 ; next_state next_state ]
     eq S_COMPLETE       ; next_state flag ]
     cjump &main_emit    ; next_state ]
 
-    dup                 ; Was it an error?
+    ; Was it an error?
+    dup
     eq S_ERROR
     cjump &main_error   ; next_state ]
 
@@ -304,10 +308,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-:main_emit              ; next_state ]
+:main_emit              ; next_state == S_COMPLETE ]
     ; a token is complete; emit it
     drop                ; ]
-    fetch &state        ; state ]
+    fetch &curr_char    ; char ]
+    fetch &state        ; char state ]
         ; Because the current state is the one that is done.
     call &emit_token    ; ]
 
@@ -325,8 +330,8 @@
     cjump &main_done    ; ]
 
     ; Reset to state A and try again with the same character
-    lit S_A
-    store &state
+    lit S_A             ; S_A ]
+    store &state        ; ]
     fetch &curr_char    ; char ]
     jump &main_loop
 

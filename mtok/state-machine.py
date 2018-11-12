@@ -32,7 +32,7 @@ if len(sys.argv)<2:
     print('''\
 Usage: state-machine.py <inputfile.csv> [which]'
 Output is to stdout.
-Optional "which" is "table" or "machine" (default both).
+Optional "which" is "table", "machine", or "emitter" (default all three).
 ''')
     exit(1)
 
@@ -68,10 +68,11 @@ if len(sys.argv)<3 or sys.argv[2] == 'table':
     print('''
 ; State table
 ; zero-based so they can be used in a jump table
-    ''')
+''')
 
     for idx, state in enumerate(states):
         print('.const S_{} {}'.format(state['name'], idx))
+# endif generating the state table
 
 ### Machine #############################################################
 # Generate the state machine
@@ -140,24 +141,33 @@ if len(sys.argv)<3 or sys.argv[2] == 'machine':
     'COMPLETE' if state['accepting'] else 'ERROR'))
 
     # next state
+#endif generating the state machine
 
+### Emitter #############################################################
+# Generate the dispatcher to emit tokens matching the states
+
+if len(sys.argv)<3 or sys.argv[2] == 'emitter':
     # Generate the skeleton of the emit_token table
     print('''
 ; === Emitter ==============================================================
 
 .const EMIT_CHAR 0
 
-; Jump table for emitting.
+; Jump table for emitting.  Call this.
 ; Input: TOS: The accepting state
 ;        NOS: The character that got us to this state
-; Call this.
-:emit_token                     ; char accepting_state
-    lit &emit_token_list        ; char accepting_state baseaddr ]
-    add                         ; char addr of the pointer ]
-    fetch                       ; char addr of the routine ]
+; Both are popped off the stack.
+:emit_token                     ; char; accepting_state
+    lit &emit_token_list        ; char; accepting_state baseaddr ]
+    add                         ; char; addr of the pointer ]
+    fetch                       ; char; addr of the routine ]
     jump    ; to the right routine for this state.  ; char ]
 :emit_err
     end     ; TODO handle this better
+
+:emit_self  ; emit the last character   ; char ]
+    out                                 ; ]
+    return
 
 :emit_token_list
 ''')
@@ -181,13 +191,12 @@ if len(sys.argv)<3 or sys.argv[2] == 'machine':
 :emit_handler_{0}           ; char ]
     lit E_{0}               ; char tok ]
     eq EMIT_CHAR            ; char flag ]
-    cjump &emit_self_{0}    ; char ]
-    out E_{0}
+    cjump &emit_self        ; char ]
+    out E_{0}               ; char ]
     drop                    ; ]
-    return
-:emit_self_{0}              ; char ]
-    out                     ; ]
-    return
-    '''.format(state['name']))
+    return'''.format(state['name']))
     # next state
+# endif generating the emitter
 
+# Always
+print("\n; vi: set ft=ngbasm:")
