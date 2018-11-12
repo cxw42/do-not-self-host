@@ -81,7 +81,8 @@ if len(sys.argv)<3 or sys.argv[2] == 'machine':
 ; === State machine ========================================================
 
 .const S_COMPLETE 65534     ; a token is complete
-;.const S_NONE 65535
+.const S_ERROR 65535        ; error: the current char is not a valid transition
+                            ; from the current state.
 
 ; Jump table for state routines.  Call this.
 ; Inputs are:
@@ -92,7 +93,7 @@ if len(sys.argv)<3 or sys.argv[2] == 'machine':
 ;   - On success, leave the next state at TOS, above the next cclass.
 
 :get_next_state
-    .lit &state_handler_list    ; cclass state baseaddr ]
+    lit &state_handler_list     ; cclass state baseaddr ]
     add                         ; cclass; addr of the pointer ]
     fetch                       ; cclass; addr of the routine ]
     jump    ; to the right routine for this state.  ; cclass ]
@@ -114,14 +115,14 @@ if len(sys.argv)<3 or sys.argv[2] == 'machine':
         print(':state_handler_{} ;-----------'.format(state['name']))
         transition_num = 0
         for input_id, next_state in state['transitions'].items():
-            # Generate the test for this transition.  The .lit+store
+            # Generate the test for this transition.  The lit+store
             print('''\
 :sh_{}_{}           ; cclass ]
     dup             ; cclass cclass ]
     neq {}          ; cclass flag ]
     cjump &sh_{}_{} ; cclass ]
     drop            ; ]
-    .lit S_{}       ; new state ]
+    lit S_{}        ; new state ]
     return
 '''.format(state['name'], transition_num, input_id,
                state['name'], transition_num + 1, next_state))
@@ -129,15 +130,14 @@ if len(sys.argv)<3 or sys.argv[2] == 'machine':
         # next transition
 
         # Unrecognized input: If it's an accepting state, we're done with this
-        # token.  Otherwise, abort.  TODO handle this better.
+        # token.  Otherwise, report error.
         print('''\
 :sh_{}_{}
-    {}
+    drop
+    lit S_{}
+    return
 '''.format(state['name'], transition_num,
-        '''\
-    drop                ; ]
-    .lit S_COMPLETE     ; COMPLETE ]
-    return''' if state['accepting'] else 'end'))
+    'COMPLETE' if state['accepting'] else 'ERROR'))
 
     # next state
 
@@ -152,7 +152,7 @@ if len(sys.argv)<3 or sys.argv[2] == 'machine':
 ;        NOS: The character that got us to this state
 ; Call this.
 :emit_token                     ; char accepting_state
-    .lit &emit_token_list       ; char accepting_state baseaddr ]
+    lit &emit_token_list        ; char accepting_state baseaddr ]
     add                         ; char addr of the pointer ]
     fetch                       ; char addr of the routine ]
     jump    ; to the right routine for this state.  ; char ]
@@ -179,7 +179,7 @@ if len(sys.argv)<3 or sys.argv[2] == 'machine':
         # the don't get blown away when this is re-run
         print('''
 :emit_handler_{0}           ; char ]
-    .lit E_{0}              ; char tok ]
+    lit E_{0}               ; char tok ]
     eq EMIT_CHAR            ; char flag ]
     cjump &emit_self_{0}    ; char ]
     out E_{0}

@@ -6,6 +6,7 @@
 ; Literals
 .const T_IGNORE 'R  ; A "Ready" output from the tokenizer.  The parser
                     ; should ignore this whenever it occurs.
+.const T_ERROR  'X  ; An invalid token was seen
 
 .const T_IDENT  'I  ; any identifier, with sigil
 .const T_NUM    'N  ; literal number

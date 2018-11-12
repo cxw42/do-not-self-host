@@ -79,8 +79,8 @@
     .data 0
 
 ; ASCII values of the current and next char (if any)
-;:char
-;    .data 0
+:curr_char
+    .data 0
 ;:nextchar
 ;    .data 0
 
@@ -111,7 +111,7 @@
     cjump &no_cclass
 
     ; Get the value from the table
-    .lit &cctable   ; char baseaddr ]
+    lit &cctable   ; char baseaddr ]
     add         ; ofs ]
     fetch       ; cclass ]
     return
@@ -258,12 +258,12 @@
 :main
 
     ; Initialize
-    .lit S_A
+    lit S_A
     store &state
 
-    jump &next  ; condition is at the bottom of the loop
+    jump &main_next  ; condition is at the bottom of the loop
 
-:loop           ; char ]
+:main_loop           ; char ]
 
     ; Get the character class
     call &get_cclass    ; cclass ]
@@ -273,26 +273,67 @@
     call &get_next_state    ; next_state ]
 
     dup                 ; next_state next_state ]
-    neq S_COMPLETE      ; next_state flag ]
-    cjump &next         ; next_state ]
+    eq S_COMPLETE       ; next_state flag ]
+    cjump &main_emit    ; next_state ]
 
-    ; a token is complete; emit it
-    call &emit_token    ; ]
+    dup                 ; Was it an error?
+    eq S_ERROR
+    cjump &main_error   ; next_state ]
 
-:next
+    ; If we get here, we have a good next state
+    store &state        ; ]
+    ; FALL THROUGH to &main_next
+
+:main_next
     out T_IGNORE    ; say we're ready
 
     in          ; char ]
     iseof       ; char flag ]
-    cjump &done ; char ]
+    ; TODO report error if we are in the middle of a token.
+    cjump &main_done ; char ]
 
-    ;; Put the current character at TOS and in &char.
-    ;dup             ; char char ]
-    ;store &char     ; char ]
+    ; Leave the current character both at TOS and in &curr_char.
+    dup                 ; char char ]
+    store &curr_char    ; char ]
 
-    jump &loop
+    jump &main_loop
 
-:done
+:main_done
     out T_IGNORE    ; DEBUG - say we completed successfully
-end
+    end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+:main_emit              ; next_state ]
+    ; a token is complete; emit it
+    drop                ; ]
+    fetch &state        ; state ]
+        ; Because the current state is the one that is done.
+    call &emit_token    ; ]
+
+    ; FALL THROUGH to main_retry_a to process the current character as the
+    ; start of a new token
+
+:main_retry_a           ; ]
+    ; Because COMPLETE only happens when we can't leave an accepting state,
+    ; we know we are done.  Therefore, reset to state A and try again.
+
+    ; First, if we were in state A, abort, so that we don't get into an
+    ; infinite loop.
+    fetch &state        ; state ]
+    eq S_A              ; flag ]
+    cjump &main_done    ; ]
+
+    ; Reset to state A and try again with the same character
+    lit S_A
+    store &state
+    fetch &curr_char    ; char ]
+    jump &main_loop
+
+; Error-token handler
+:main_error             ; next_state ]
+    drop                ; ]
+    out T_ERROR
+    jump &main_retry_a  ; ] ; retry from state A
+
 
