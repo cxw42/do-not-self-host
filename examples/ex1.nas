@@ -2,7 +2,7 @@
 :main
 
   ; Put something on the stack, just so we'll see it when ngb exits.
-  .lit 42
+  lit 42
 
   out 65 ; Print "A" so we know we're alive.
 
@@ -15,6 +15,10 @@
   eq 32
 
   ; If so, we're done.
+  cjump &done
+
+  ; Is it EOF?
+  iseof
   cjump &done
 
   ; Otherwise, bump it, print it, and loop around.

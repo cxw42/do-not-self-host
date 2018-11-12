@@ -5,7 +5,7 @@
 :main
 
   ; Put something on the stack, just so we'll see it when ngb exits.
-  .lit answer
+  lit answer
 
   .include ex2-include.nas
 
@@ -18,6 +18,10 @@
   eq 32
 
   ; If so, we're done.
+  cjump &done
+
+  ; Done also on EOF
+  iseof
   cjump &done
 
   ; Otherwise, bump it, print it, and loop around.

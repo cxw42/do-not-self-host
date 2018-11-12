@@ -342,12 +342,15 @@ void inst_in() {
   sp++;
   TOS = getc(stdin);
 #ifdef _DEBUG
-  printf("\nGot char %d\n", TOS);   // DEBUG
+  printf("\nGot char %d %c\n", TOS, (TOS>=32 && TOS<127) ? TOS : '.');
 #endif
   ngbStatsCheckMax();
 }
 
 void inst_out() {
+#ifdef _DEBUG
+  printf("\n==> ");
+#endif
   printf("%c", (char)(data[sp]&0xff));
   sp--;
 }
