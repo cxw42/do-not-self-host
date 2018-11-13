@@ -14,6 +14,21 @@ Assumes a development environment that provides stdin/stdout and redirection.
 * ngb: VM (in C)
 * ngbasm: assembler (in Python)
 
+## Editor support
+
+ngb assembly files have the extension `.nas`.  A Vim syntax configuration
+is available [here](https://github.com/cxw42/ngb-vim).
+
+## I'm not the only one
+
+The Facebook Buck build system also doesn't self-host by default (although
+it can).  The Buck [FAQ](https://buckbuild.com/concept/faq.html) says, in part:
+
+> Q: Why is Buck built with Ant instead of Buck?
+>
+> A: Self-hosting systems can be more difficult to maintain and debug.
+If Buck built itself using Buck, then every time a change was made to Buck's source, the commit would have to include a new Buck binary that included that change. It would be easy to forget to include the binary, difficult to verify that it was the correct binary, and wasteful to bloat the Git history of the repository with binaries that could be rebuilt from source. Building Buck using Ant ensures we are always building from source, which is simpler to verify.
+
 ## Notes
 
 Based on [crcx/Nga-Bootstrap](https://github.com/crcx/Nga-Bootstrap), which
@@ -46,12 +61,3 @@ In the pipeline:
 
 Future: to be determined... (but possibly a C compiler written in Minhi)
 
-## I'm not the only one
-
-The Facebook Buck build system also doesn't self-host by default (although
-it can).  The Buck [FAQ](https://buckbuild.com/concept/faq.html) says, in part:
-
-> Q: Why is Buck built with Ant instead of Buck?
->
-> A: Self-hosting systems can be more difficult to maintain and debug.
-If Buck built itself using Buck, then every time a change was made to Buck's source, the commit would have to include a new Buck binary that included that change. It would be easy to forget to include the binary, difficult to verify that it was the correct binary, and wasteful to bloat the Git history of the repository with binaries that could be rebuilt from source. Building Buck using Ant ensures we are always building from source, which is simpler to verify.
