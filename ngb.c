@@ -417,6 +417,7 @@ void inst_numout() {
   } while(val>0 && ((curr-buf) < sizeof(buf)));
 
   // Print MSB to LSB
+  --curr;   // undo the last curr++, which pushed us off the end
   while(curr>=buf) {
     printf("%c", *curr--);
   }
