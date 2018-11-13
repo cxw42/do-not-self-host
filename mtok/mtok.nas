@@ -65,6 +65,7 @@
 ; I ::= '|' (pipe char)
 ; W ::= [[:space:]]     ; mapped to T_IGNORE
 ; SA+|D+|QQ|::|<=>|->|<=|>=|==|<>|<|>|=|P|-|W+
+; === https://cyberzhg.github.io/toolbox/nfa2dfa?regex=U0ErfEQrfFFRfDo6fDw9PnwtPnw8PXw+PXw9PXw8Pnw8fD58PXxQfC18Vys=
 
 ; }}}1
 ; === State -> token mapping ============================================== {{{1
@@ -261,8 +262,8 @@
     ; Initialize: start in state A
     lit S_A
     store &state
-    lit &curr_token
-    store &curr_token_pointer
+    lit &curr_token             ; &curr_token[0] ]
+    store &curr_token_pointer   ; ] - curr_token_pointer := &curr_token[0]
 
     jump &main_next  ; condition is at the bottom of the loop
 
@@ -289,6 +290,10 @@
 
     ; If we get here, we have a good next state
     store &state            ; ]
+
+    ; Also, since this character didn't start a new token, stash it.
+    call &stash_curr_char
+
     ; FALL THROUGH to &main_next
 
 :main_next
@@ -298,6 +303,7 @@
     cjump &main_done        ; ]
 
     out T_IGNORE    ; say we're ready
+    out 'A          ; zero-length token follows
 
     in                      ; char ]
     iseof                   ; char flag ]
@@ -310,7 +316,9 @@
     jump &main_loop
 
 :main_done
-    out T_IGNORE    ; DEBUG - say we completed successfully
+    out T_EOF
+    out 'A      ; zero-length token data
+
     end
 
 ; We saw an EOF, so run the loop one last time to flush the last token
@@ -325,13 +333,15 @@
 
 :main_emit              ; next_state == S_COMPLETE ]
     ; a token is complete; emit it
-    drop                ; ]
-    fetch &curr_char    ; char ]
-    fetch &state        ; char state ]
-        ; Because the current state is the one that is done.
-    call &emit_token    ; ]
+    drop                        ; ]
 
-    call &main_emit_curr_token  ; output the text we've built up, plus
+    ; Emit the token code
+    fetch &curr_char            ; char ]
+    fetch &state                ; char state ]
+        ; Because the current state is the one that is done.
+    call &emit_token            ; ]
+
+    call &emit_curr_token_text  ; output the text we've built up, plus
                                 ; its length.
 
     ; FALL THROUGH to main_retry_a to process the current character as the
@@ -351,6 +361,10 @@
     lit &curr_token
     store &curr_token_pointer
 
+    ; Save the current character to the curr_token buffer, since it's the
+    ; first character of a new token
+    call &stash_curr_char
+
     ; Reset to state A and try again with the same character
     lit S_A             ; S_A ]
     store &state        ; ]
@@ -363,29 +377,66 @@
     out T_ERROR
     jump &main_retry_a  ; ] ; retry from state A
 
+; }}}1
+; === Utility routines ==================================================== {{{1
+
+; ---------
+; cjump &creturn == conditional return
+:creturn
+    ;out '|  ; DEBUG
+    ;out 'A  ; DEBUG - zero-length token data
+    return
+
+; ---------
+; *&curr_token_pointer++ = *&curr_char;
+:stash_curr_char
+    ; Assignment
+    fetch &curr_char            ; char
+    fetch &curr_token_pointer   ; char *char]
+    store                       ; char ]
+
+    ; Increment
+    fetch &curr_token_pointer   ; char *char ]
+    add 1                       ; char *char ]
+    store &curr_token_pointer   ; char ]
+
+    return
+
+; ---------
 ; Emit the contents of curr_token as a length-delimited string
-:main_emit_curr_token
-    fetch &curr_token_pointer   ; end of the token, plus 1
+:emit_curr_token_text
+;    out '!  ; DEBUG
+    fetch &curr_token_pointer   ; *last-char+1 ]
     sub 1                       ; now pointing to the last char
-    fetch &curr_token           ; last-char, first-char ]
-    sub                         ; count ]
+    dup                         ; *lc *lc ]
+    store &curr_token_pointer   ; *lc ] - since we use it as a termination test
+;    dup     ; DEBUG
+;    numout  ; DEBUG
+
+    ; Count the number of entries
+    lit &curr_token             ; *last-char, *first-char ]
+;    dup     ; DEBUG
+;    numout  ; DEBUG
+    sub                         ; count-1 ]
+    add 1                       ; count ]
     numout                      ; ]             tell the reader what to expect
     lit &curr_token             ; *first-char ]
 
-:mect_loop
+:ectt_loop                      ; *curr ]
+;    out '@  ; DEBUG
+    ; Print the char
     dup                         ; *curr *curr ]
     fetch                       ; *curr char ]
     out                         ; *curr ]
+
+    ; See if we're done
     dup                         ; *curr *curr ]
     fetch &curr_token_pointer   ; *curr *curr *end ]
     eq                          ; *curr flag ]
     cjump &creturn              ; *curr ]
-    add 1
-    jump &mect_loop
 
-; cjump &creturn == conditional return
-:creturn
-    return
+    add 1                       ; *next ]
+    jump &ectt_loop
 
 ; }}}1
 ; === Bulk storage ======================================================== {{{1
