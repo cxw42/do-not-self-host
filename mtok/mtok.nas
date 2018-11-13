@@ -8,28 +8,19 @@
 :state
     .data 0
 
-; ASCII values of the current and next char (if any)
+; ASCII value of the most-recently read (current) character
 :curr_char
     .data 0
-;:nextchar
-;    .data 0
 
-; Character classes of the current char
-;:issigil
-;    .data 0
-;:isalpha
-;    .data 0
-;:isalnum
-;    .data 0
-;:isdigit
-;    .data 0
-;:isnonquote     ; valid in a string: [^']
-;    .data 0
-;:ispunc         ; single-char operator punctuation: [()"\[\]^-*/%+,;]
-;    .data 0
+; Pointer to the location in curr_token at which the next character should
+; be written
+:curr_token_ptr
+    .data 0
 
 ; }}}1
 ; === Language ============================================================ {{{1
+
+; TODO add a branch that accepts EOF
 
 ; Try 3
 ; This tokenizer recognizes the language:
@@ -270,6 +261,8 @@
     ; Initialize: start in state A
     lit S_A
     store &state
+    lit &curr_token
+    store &curr_token_pointer
 
     jump &main_next  ; condition is at the bottom of the loop
 
@@ -338,6 +331,9 @@
         ; Because the current state is the one that is done.
     call &emit_token    ; ]
 
+    call &main_emit_curr_token  ; output the text we've built up, plus
+                                ; its length.
+
     ; FALL THROUGH to main_retry_a to process the current character as the
     ; start of a new token
 
@@ -351,6 +347,10 @@
     eq S_A              ; flag ]
     cjump &main_done    ; ]
 
+    ; Reset the current-token buffer
+    lit &curr_token
+    store &curr_token_pointer
+
     ; Reset to state A and try again with the same character
     lit S_A             ; S_A ]
     store &state        ; ]
@@ -362,6 +362,39 @@
     drop                ; ]
     out T_ERROR
     jump &main_retry_a  ; ] ; retry from state A
+
+; Emit the contents of curr_token as a length-delimited string
+:main_emit_curr_token
+    fetch &curr_token_pointer   ; end of the token, plus 1
+    sub 1                       ; now pointing to the last char
+    fetch &curr_token           ; last-char, first-char ]
+    sub                         ; count ]
+    numout                      ; ]             tell the reader what to expect
+    lit &curr_token             ; *first-char ]
+
+:mect_loop
+    dup                         ; *curr *curr ]
+    fetch                       ; *curr char ]
+    out                         ; *curr ]
+    dup                         ; *curr *curr ]
+    fetch &curr_token_pointer   ; *curr *curr *end ]
+    eq                          ; *curr flag ]
+    cjump &creturn              ; *curr ]
+    add 1
+    jump &mect_loop
+
+; cjump &creturn == conditional return
+:creturn
+    return
+
+; }}}1
+; === Bulk storage ======================================================== {{{1
+
+:curr_token_pointer
+    .data 0
+
+:curr_token
+    .reserve 256
 
 ; }}}1
 ; vi: set fdm=marker fdl=1:
