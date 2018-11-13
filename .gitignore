@@ -21,3 +21,4 @@
 *.svg
 *.txt
 *.csv
+!mtok/mtok.csv
