@@ -32,6 +32,8 @@ ngb adds:
     28 out
     29 cjump
     30 iseof
+    31 numin
+    32 numout
 
 All instructions except for **lit** are one cell long. **lit** takes two: one
 for the instruction and one for the value to push to the stack.
@@ -106,6 +108,9 @@ Example:
     lit foo    ; equivalent to lit 42
 
 Predefined constants are `true` (`-1`), and `false` (`0`).
+
+**.r**eserve allocates a block of space.  `.reserve <n>` is the same as
+`<n>` instances of `data 0`.
 
 ### Technical Notes
 
@@ -193,6 +198,8 @@ instrs = {
     'out': 28,
     'cjump': 29,
     'iseof': 30,
+    'numin': 31,
+    'numout': 32,
 }
 
 ````
@@ -346,6 +353,16 @@ def handle_data(parts):     # data: Raw cell value.
 
 ````
 
+And we can load blocks of cells using `.reserve`.
+
+````
+def handle_reserve(parts):
+    val = int(operand_value(parts[1]))
+    print(val)
+    for i in range(val): comma(0)
+
+````
+
 Ok, now for a somewhat messier bit. The **LIT** instruction is two part: the
 first is the actual opcode (1), the second (stored in the following cell) is
 the value to push to the stack. A source line is setup like:
@@ -413,6 +430,7 @@ def handle_directive(parts):
     elif token[0:2] == '.d': handle_data(parts)
     elif token[0:2] == '.i': handle_include(parts)
     elif token[0:2] == '.c': handle_const(parts)
+    elif token[0:2] == '.r': handle_reserve(parts)
     else:
         print('Unknown directive ', token)
         exit(1)

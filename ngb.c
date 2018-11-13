@@ -24,7 +24,7 @@
 #define STACK_DEPTH 32
 #define CELLSIZE    32
 
-enum vm_opcode {
+enum vm_opcode {  // Note: NOP must always be instruction 0.
   VM_NOP,  VM_LIT,    VM_DUP,   VM_DROP,    VM_SWAP,   VM_PUSH,  VM_POP,
   VM_JUMP, VM_CALL,   VM_CCALL, VM_RETURN,  VM_EQ,     VM_NEQ,   VM_LT,
   VM_GT,   VM_FETCH,  VM_STORE, VM_ADD,     VM_SUB,    VM_MUL,   VM_DIVMOD,
@@ -35,6 +35,8 @@ enum vm_opcode {
   VM_OUT,   // putc
   VM_CJUMP,
   VM_ISEOF,
+  VM_NUMIN,
+  VM_NUMOUT,
 
   NUM_OPS
 };
@@ -42,11 +44,11 @@ enum vm_opcode {
 // VM memory and registers
 
 CELL sp, rp, ip;
-CELL data[STACK_DEPTH];
-CELL address[ADDRESSES];
-CELL memory[IMAGE_SIZE];
+CELL data[STACK_DEPTH] = {0};
+CELL address[ADDRESSES] = {0};
+CELL memory[IMAGE_SIZE] = {0};
 
-int stats[NUM_OPS];
+int stats[NUM_OPS] = {0};
 int max_sp, max_rp;
 
 #define TOS  data[sp]
@@ -102,18 +104,7 @@ CELL ngbLoadImage(char *imageFile) {
 
 void ngbPrepare() {
   ip = sp = rp = max_sp = max_rp = 0;
-
-  for (ip = 0; ip < IMAGE_SIZE; ip++)
-    memory[ip] = VM_NOP;
-
-  for (ip = 0; ip < STACK_DEPTH; ip++)
-    data[ip] = 0;
-
-  for (ip = 0; ip < ADDRESSES; ip++)
-    address[ip] = 0;
-
-  for (ip = 0; ip < NUM_OPS; ip++)
-    stats[ip] = 0;
+  // The VM memory was already zero-intialized
 }
 
 void ngbStatsCheckMax() {
@@ -158,6 +149,9 @@ void ngbDisplayStats()
   printf("IN:      %d\n", stats[VM_IN]);
   printf("OUT:     %d\n", stats[VM_OUT]);
   printf("CJUMP:   %d\n", stats[VM_CJUMP]);
+  printf("ISEOF:   %d\n", stats[VM_ISEOF]);
+  printf("NUMIN:   %d\n", stats[VM_NUMIN]);
+  printf("NUMOUT:   %d\n", stats[VM_NUMOUT]);
   printf("Max sp:  %d\n", max_sp);
   printf("Max rp:  %d\n", max_rp);
 
@@ -376,6 +370,58 @@ void inst_iseof() {
 #endif
 }
 
+// Output the number on the top of the stack in base 26, self-marking.
+void inst_numin() {
+  CELL val = 0;
+  int c;
+
+  // Read MSB to LSB
+  while(1) {
+    val *= 26;
+    c = getc(stdin);
+    if(c == -1) {
+      // EOF => done, and discard value.  TODO handle this better.
+      val = -1;
+      break;
+    }
+
+    val += c - (c < 'a' ? 'A' : 'a');
+
+    if(c < 'a') break;  // Uppercase char => done
+
+  }
+
+#ifdef _DEBUG
+  printf("\ngot num %d\n", val);
+#endif
+
+  sp++;
+  TOS = val;
+  ngbStatsCheckMax();
+} //inst_numin
+
+void inst_numout() {
+  CELL val = TOS;
+  sp--;
+#ifdef _DEBUG
+  printf("\nnum ==> %d\n", val);
+#endif
+
+  char buf[32] = {0}; // long enough for the base-26 representation of any int
+  char *curr = buf;
+
+  // Generate LSB to MSB
+  do {
+    *curr++ = (val % 26) + (curr==buf ? 'A' : 'a');   // last char is uppercase
+    val /= 26;
+  } while(val>0 && ((curr-buf) < sizeof(buf)));
+
+  // Print MSB to LSB
+  while(curr>=buf) {
+    printf("%c", *curr--);
+  }
+} //inst_numout
+
 // Instruction table
 typedef void (*Handler)(void);
 
@@ -388,6 +434,8 @@ Handler instructions[NUM_OPS] = {
   inst_out,
   inst_cjump,
   inst_iseof,
+  inst_numin,
+  inst_numout,
 };
 
 #ifdef _DEBUG
@@ -400,11 +448,10 @@ char *instr_names[NUM_OPS] = {
   "out",
   "cjump",
   "iseof",
+  "numin",
+  "numout",
 };
 #endif
-
-
-
 
 // Interpreter =============================================================
 
