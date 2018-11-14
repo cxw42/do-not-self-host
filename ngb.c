@@ -516,7 +516,9 @@ int main(int argc, char **argv) {
     printf("%8d: %d ", i, data[i]);
   }
 
+#ifdef _DEBUG
   printf("\n");
+#endif
   exit(retval);
 }
 
