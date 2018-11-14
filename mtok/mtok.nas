@@ -278,14 +278,14 @@
     ; took us, or COMPLETE/ERROR if that character isn't a valid transition
     ; from this state.
     fetch &state            ; cclass state ]
-    out '[ ; DEBUG
-    dup
-    numout
-    out ']
+;    out '[ ; DEBUG
+;    dup
+;    numout
+;    out ']
     call &get_next_state    ; next_state ]
 
-    dup     ; DEBUG
-    numout  ; DEBUG
+;    dup     ; DEBUG
+;    numout  ; DEBUG
 
     ; Did we finish a token?
     dup                 ; next_state next_state ]
@@ -313,10 +313,10 @@
 
     ; Get the next char of input
     in                      ; char ]
-    out '>  ; DEBUG
-    dup
-    out
-    out '<
+;    out '>  ; DEBUG
+;    dup
+;    out
+;    out '<
 
     ; Save the current character in &curr_char.
     dup                     ; char char ]
@@ -333,13 +333,13 @@
 
 :main_done
     out T_EOF
-    out 'A      ; zero-length token data
+    out 'A                  ; == numout 0 => no token data
 
     end
 
 ; We saw an EOF, so run the loop one last time to flush the last token
 :main_last_time             ; char ]
-    out '}
+;    out '}  ; DEBUG
     drop                    ; ] - ignore the actual EOF (could be 4 or -1)
     lit 4                   ; curr char (always ^D) ]
 
@@ -393,14 +393,14 @@
     ;call &stash_curr_char
 
     ; Reset to state A and try again with the same character
-    out '%
+;    out '% ; DEBUG
     lit S_A             ; S_A ]
     store &state        ; ]
     fetch &curr_char    ; char ]
-    out '1
-    dup
-    out
-    out '2
+;    out '1  ; DEBUG
+;    dup
+;    out
+;    out '2
 
     jump &main_loop
 
@@ -410,7 +410,7 @@
 :main_error             ; next_state ]
     drop                ; ]
     out T_ERROR
-    out 'A              ; no token data
+    out 'A              ; == numout 0 => no token data
 
     call &reset_token_buf_to_just_last_char
 
@@ -429,7 +429,7 @@
 ; ---------
 ; *&curr_token_pointer++ = *&curr_char;
 :stash_curr_char                ; ]
-    out 'S
+;    out 'S     ; DEBUG
     ; Assignment
     fetch &curr_char            ; char
     fetch &curr_token_pointer   ; char *char]
