@@ -1,22 +1,29 @@
 # ngbasm
 
-ngbasm is a minimalistic assembler for the ngb instruction set. It provides:
+ngbasm is a minimalistic assembler for the ngb instruction set.  ngbasm is
+written in a literate programming style, so _this file_ is the reference
+source and documentation for ngbasm.  To generate the runnable ngbasm, use
 
-* Two passes: assemble, then resolve lables
+    ./extract.py ngbasm.md ngbasm.py
+
+## Features
+
+ngbasm provides:
+
+* Two passes: assemble, then resolve labels
 * Labels
-* Basic literals
+* Named constants
+* ASCII and numeric literals
 * Symbolic names for all instructions
 * Facilities for inlining simple data
 * Directives for setting output filename
 
 ngbasm is intended to be a stepping stone for supporting larger applications.
-It wasn't designed to be easy or fun to use, just to provide the essentials
-needed to build useful things.
+It is designed to provide the essentials needed to build useful things.
 
 ## Instruction Set
 
-Nga has a very small set of instructions. These can be briefly listed in a
-short table:
+The ngb virtual machine has a very small set of instructions:
 
     0  nop        7  jump      14  gt        21  and
     1  lit <v>    8  call      15  fetch     22  or
@@ -26,7 +33,7 @@ short table:
     5  push      12  neq       19  mul       26  end
     6  pop       13  lt        20  divmod
 
-ngb adds:
+ngb shares those instructions with the Ngaro (Nga) VM.  ngb adds:
 
     27 in
     28 out
@@ -67,18 +74,18 @@ Delving a bit deeper:
 * Comments are OK on the same line as code, provided there is whitespace
   before the semicolon that starts the comment.  (Otherwise you wouldn't
   be able to do `';`.)
-* Blank lines are ok and will be stripped out
+* Blank lines are ok and will be ignored
 * One instruction (or assembler directive) per line
 * Labels start with a colon
-* A **lit** can be followed by a number or a label name
 * References to labels must start with an &
+* A **lit** can be followed by a number, a label name, constant, or literal
 
 ### Assembler Directives
 
 ngbasm provides some directives which can be useful:
 
 **.o**utput is used to set the name of the file that will be created with
-the Nga bytecode. If none is set, the filename will be defaulted to
+the ngb bytecode. If none is set, the filename will be defaulted to
 *output.ngb*
 
 Example:
@@ -138,11 +145,11 @@ First up, the preamble, and some variables.
 
 | name   | usage                                               |
 | ------ | --------------------------------------------------- |
-| output_filename | stores the name of the file for the assembled image |
-| labels | stores a list of labels and pointers                |
-| memory | stores all values                                   |
-| i      | pointer to the current memory location              |
-| instrs | Dictionary of the ngb instructions and opcodes      |
+| `output_filename` | stores the name of the file for the assembled image |
+| `labels` | stores a list of labels and pointers                |
+| `memory` | stores all values                                   |
+| `i`      | pointer to the current memory location              |
+| `instrs` | Dictionary of the ngb instructions and opcodes      |
 
 ````
 #!/usr/bin/env python3
