@@ -300,9 +300,6 @@
     ; If we get here, we have a good next state
     store &state            ; ]
 
-    ; Also, since this character didn't start a new token, stash it.
-    call &stash_curr_char
-
     ; FALL THROUGH to &main_next
 
 :main_next
@@ -314,6 +311,7 @@
 ;    out T_IGNORE    ; say we're ready
 ;    out 'A          ; zero-length token follows
 
+    ; Get the next char of input
     in                      ; char ]
     out '>  ; DEBUG
     dup
@@ -323,6 +321,9 @@
     ; Save the current character in &curr_char.
     dup                     ; char char ]
     store &curr_char        ; char ]
+
+    ; Always add the char to the buffer - we will undo it later if necessary
+    call &stash_curr_char
 
     ; Handle EOF
     iseof                   ; char flag ]
@@ -339,11 +340,19 @@
 ; We saw an EOF, so run the loop one last time to flush the last token
 :main_last_time             ; char ]
     out '}
-    drop                    ; ]
-    lit true                ; flag ]
-    store &main_is_done     ; ]
+    drop                    ; ] - ignore the actual EOF (could be 4 or -1)
     lit 4                   ; curr char (always ^D) ]
-    jump &main_loop         ; char ]
+
+    ; Make the end of the saved-token buffer a ^D
+    dup                     ; ^D ^D ]
+    call &replace_last_saved_char       ; ^D ]
+
+    ; Mark that we're almost done
+    lit true                ; ^D flag ]
+    store &main_is_done     ; ^D ]
+
+    ; Last time through the loop
+    jump &main_loop         ; ^D ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -359,6 +368,8 @@
 
     call &emit_curr_token_text  ; output the text we've built up, plus
                                 ; its length.
+
+    call &reset_token_buf_to_just_last_char
 
     ; FALL THROUGH to main_retry_a to process the current character as the
     ; start of a new token
@@ -377,9 +388,9 @@
     eq S_A              ; flag ]
     cjump &main_done    ; ]
 
-    ; Save the current character to the curr_token buffer, since it's the
-    ; first character of a new token
-    call &stash_curr_char
+    ; TODO reset the curr_token buffer to contain the
+    ; first character of the next token
+    ;call &stash_curr_char
 
     ; Reset to state A and try again with the same character
     out '%
@@ -393,10 +404,16 @@
 
     jump &main_loop
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ; Error-token handler
 :main_error             ; next_state ]
     drop                ; ]
     out T_ERROR
+    out 'A              ; no token data
+
+    call &reset_token_buf_to_just_last_char
+
     jump &main_retry_a  ; ] ; retry from state A
 
 ; }}}1
@@ -426,12 +443,37 @@
     return
 
 ; ---------
+; curr_token_pointer[-1] = pop
+:replace_last_saved_char        ; new-char ]
+    fetch &curr_token_pointer   ; new-char; ptr to next open spot ]
+    sub 1                       ; new-char; ptr to last char written
+    store                       ; ]
+    return
+
+; ---------
+; *curr_token = curr_char; curr_token_pointer = curr_token+1
+:reset_token_buf_to_just_last_char      ; ]
+    ;; Get the last char - BUT we don't need to do this since it's in curr_char
+    ;fetch &curr_token_pointer           ; ptr ]
+    ;sub 1                               ; ptr-1 ]
+    ;fetch                               ; char ] - the last char saved
+
+    ; Reset the curr_token_pointer
+    lit &curr_token                     ; char *buf ]
+    store &curr_token_pointer           ; char ]
+
+    ; Put the first char back
+    call &stash_curr_char
+    return
+
+; ---------
 ; Emit the contents of curr_token as a length-delimited string.
 ; Doesn't change the stack; does reset curr_token_pointer.
 :emit_curr_token_text
 ;    out '!  ; DEBUG
     fetch &curr_token_pointer   ; *last-char+1 ]
-    sub 1                       ; now pointing to the last char
+    sub 2                       ; now pointing to the last char of this token,
+                                ; which is the one before the last char written.
     dup                         ; *lc *lc ]
     store &curr_token_pointer   ; *lc ] - since we use it as a termination test
 ;    dup     ; DEBUG
