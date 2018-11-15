@@ -14,6 +14,10 @@
 #include <setjmp.h>
 #include <termios.h>
 
+// General globals
+
+int Debugging = 0;
+
 // VM machine definitions and constraints
 
 #define VM_TRUE     (-1)
@@ -337,16 +341,14 @@ void inst_end() {
 void inst_in() {
   sp++;
   TOS = getc(stdin);
-#ifdef _DEBUG
-  printf("\nGot char %d %c\n", TOS, (TOS>=32 && TOS<127) ? TOS : '.');
-#endif
+  if(Debugging)
+    printf("\nGot char %d %c\n", TOS, (TOS>=32 && TOS<127) ? TOS : '.');
   ngbStatsCheckMax();
 }
 
 void inst_out() {
-#ifdef _DEBUG
-  printf("\n==> ");
-#endif
+  if(Debugging)
+    printf("\n==> ");
   printf("%c", (char)(data[sp]&0xff));
   sp--;
 }
@@ -365,9 +367,8 @@ void inst_iseof() {
     sp++;
     TOS = ( (NOS == -1) || (NOS == 4) ? -1 : 0);
         // Ctl-D (4) is also EOF
-#ifdef _DEBUG
-    printf("\nCharacter %s EOF\n", TOS ? "was" : "was not");    // DEBUG
-#endif
+    if(Debugging)
+      printf("\nCharacter %s EOF\n", TOS ? "was" : "was not");    // DEBUG
 }
 
 // Output the number on the top of the stack in base 26, self-marking.
@@ -391,9 +392,8 @@ void inst_numin() {
 
   }
 
-#ifdef _DEBUG
-  printf("\ngot num %d\n", val);
-#endif
+  if(Debugging)
+    printf("\ngot num %d\n", val);
 
   sp++;
   TOS = val;
@@ -403,9 +403,8 @@ void inst_numin() {
 void inst_numout() {
   CELL val = TOS;
   sp--;
-#ifdef _DEBUG
-  printf("\nnum ==> %d\n", val);
-#endif
+  if(Debugging)
+    printf("\nnum ==> %d\n", val);
 
   char buf[32] = {0}; // long enough for the base-26 representation of any int
   char *curr = buf;
@@ -439,7 +438,6 @@ Handler instructions[NUM_OPS] = {
   inst_numout,
 };
 
-#ifdef _DEBUG
 char *instr_names[NUM_OPS] = {
   "nop", "lit", "dup", "drop", "swap", "push", "pop",
   "jump", "call", "ccall", "return", "eq", "neq", "lt",
@@ -452,7 +450,6 @@ char *instr_names[NUM_OPS] = {
   "numin",
   "numout",
 };
-#endif
 
 // Interpreter =============================================================
 
@@ -464,11 +461,19 @@ void ngbProcessOpcode() {
 #ifndef NO_MAIN
 
 int main(int argc, char **argv) {
+  char *filename = "ngbImage";  // default
   ngbPrepare();
-  if (argc == 2)
-      ngbLoadImage(argv[1]);
-  else
-      ngbLoadImage("ngbImage");
+
+  // Check command line
+  if (argc>1 && strcmp(argv[1], "-g")==0) {
+    Debugging = 1;
+    if(argc>2) filename = argv[2];
+
+  } else if (argc>1) {
+    filename = argv[1];
+  }
+
+  ngbLoadImage(filename);
 
   CELL opcode, i;
 
@@ -477,21 +482,20 @@ int main(int argc, char **argv) {
   int retval = setjmp(DONE);
 
   if(retval == 0) {   // First time through: run it
-#ifdef _DEBUG
-    printf("addr\topcode\tname\tpreTOS\tpostTOS\n");
-#endif
+    if(Debugging)
+      printf("addr\topcode\tname\tpreTOS\tpostTOS\n");
 
     ip = 0;
     while (ip < IMAGE_SIZE) {
       opcode = memory[ip];
       if (opcode >= 0 && opcode < NUM_OPS) {
-#ifdef _DEBUG
-        printf("%d\t%d\t%s\t%d", ip, opcode, instr_names[opcode], TOS);
-#endif
+        if(Debugging)
+          printf("%d\t%d\t%s\t%d", ip, opcode, instr_names[opcode], TOS);
+
         ngbProcessOpcode();
-#ifdef _DEBUG
-        printf("\t%d\n", TOS);
-#endif
+
+        if(Debugging)
+          printf("\t%d\n", TOS);
 
       } else {
         printf("Invalid instruction!\n");
@@ -516,9 +520,8 @@ int main(int argc, char **argv) {
     printf("%8d: %d ", i, data[i]);
   }
 
-#ifdef _DEBUG
-  printf("\n");
-#endif
+  if(Debugging)
+    printf("\n");
   exit(retval);
 }
 
