@@ -1,2 +1,10 @@
-use Test::More tests=>1;
+use Test::More;
+use Cwd;
+
+diag('Running in ' . Cwd::cwd);
+
 ok(true, "Tests run");
+ok(-r -x 'ngbasm.py', 'Assembler is runnable');
+ok((-r -x 'ngb') || (-r -x 'ngb.exe'), 'Compiler is runnable');
+
+done_testing();
