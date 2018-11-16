@@ -55,9 +55,9 @@ CELL memory[IMAGE_SIZE] = {0};
 int stats[NUM_OPS] = {0};
 int max_sp, max_rp;
 
-#define TOS  data[sp]
-#define NOS  data[sp-1]
-#define TORS address[rp]
+#define TOS  (data[sp])
+#define NOS  (data[sp-1])
+#define TORS (address[rp])
 
 // Interactions with the OS
 
@@ -302,23 +302,23 @@ void inst_divmod() {
 }
 
 void inst_and() {
-  NOS = TOS & NOS;
+  NOS &= TOS;
   inst_drop();
 }
 
 void inst_or() {
-  NOS = TOS | NOS;
+  NOS |= TOS;
   inst_drop();
 }
 
 void inst_xor() {
-  NOS = TOS ^ NOS;
+  NOS ^= TOS;
   inst_drop();
 }
 
 void inst_shift() {
   if (TOS < 0)
-    NOS = NOS << (TOS * -1);
+    NOS <<= (-TOS);
   else
     NOS >>= TOS;
   inst_drop();
@@ -333,7 +333,7 @@ void inst_zret() {
 }
 
 void inst_end() {
-  ip = IMAGE_SIZE;
+  ip = IMAGE_SIZE;  // ... which the main loop uses as the termination test.
 }
 
 // Not in nga

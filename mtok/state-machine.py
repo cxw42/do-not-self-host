@@ -151,7 +151,7 @@ if len(sys.argv)<3 or sys.argv[2] == 'emitter':
     print('''
 ; === Emitter ==============================================================
 
-.const EMIT_CHAR 0
+.const EMIT_CHAR -42    ; An easy value to spot in debug output
 
 ; Jump table for emitting.  Call this.
 ; Input: TOS: The accepting state

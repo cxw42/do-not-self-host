@@ -9,7 +9,9 @@
                     ; should ignore this whenever it occurs.
 .const T_ERROR  'X  ; An invalid token was seen
 
-.const T_IDENT  'I  ; any identifier, with sigil
+.const T_IDENT  'I      ; any identifier, with sigil
+.const T_BAREWORD 'B    ; any bareword, i.e., an identifier not preceded
+                        ; by a sigil
 .const T_NUM    'N  ; literal number
     ; TODO? base-N literals with this, or separate?
 .const T_STRING 'S  ; literal string

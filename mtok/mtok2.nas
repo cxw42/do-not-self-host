@@ -4,6 +4,7 @@
 ; mtok.nas produces tokens and token values.  This pass filters out the
 ; token values for all except identifiers and numbers, and removes all "Ignore"
 ; tokens.
+; It also rewrites bareword operators to the operator tokens.
 
     .include ../minhi-constants.nas
 
@@ -45,6 +46,8 @@
     dup                 ; char char ]
     eq T_IGNORE         ; char flag ]
     jump &main_loop     ; char char ]
+
+    ; TODO rewrite barewords
 
     ; Emit the token code
     dup                 ; char char ]
