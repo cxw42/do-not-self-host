@@ -93,6 +93,11 @@ for my $hrOp (['??', '?'], ['::', ':']) {
             "Operator $hrOp->[0]"]);
 }
 
+# Whitespace
+for my $ws (" ", "  ", "\t", "\r", "\n", "\r\n", "  \t\t   \r  \n\r\n") {
+    test($ws, ['err', '', 'No stderr'],
+        ['out', "R${T}EA", "Whitespace: " . unpack('H*', $ws)]);
+}
 
 # TODO test empty input
 

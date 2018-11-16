@@ -155,9 +155,9 @@
     .data 11    ; ctl-D
     .data 11
     .data 11
+    .data 11
+    .data 11
     .data 10
-    .data 11
-    .data 11
     .data 10
     .data 11
     .data 11
