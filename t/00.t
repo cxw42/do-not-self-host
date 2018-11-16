@@ -1,4 +1,5 @@
-use Test::More;
+use rlib 'lib';
+use DTest;
 use Cwd;
 
 diag('Running in ' . Cwd::cwd);

@@ -64,6 +64,10 @@ WriteMakefile(
         'Test::More' => '0',
     },
     TEST_REQUIRES => {
+        'Cwd' => '0',
+        'Import::Into' => '0',
+        'IPC::Run3' => '0',
+        'rlib' => '0',
         'Test::Harness' => '0',
     },
     META_MERGE => {

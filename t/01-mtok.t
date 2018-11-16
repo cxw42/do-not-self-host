@@ -1,10 +1,5 @@
-use Test::More;
-use IPC::Run3;
-use Data::Dumper;
-use strict;
-use warnings;
-use constant { true => !!1, false => !!0 };
-use Carp qw(croak);
+use rlib 'lib';
+use DTest;
 
 # TODO read the token codes from minhi-constants.nas in case they ever change
 
