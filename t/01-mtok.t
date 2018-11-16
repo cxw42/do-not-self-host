@@ -1,21 +1,63 @@
 use Test::More;
 use IPC::Run3;
 use Data::Dumper;
+use strict;
+use warnings;
+use constant { true => !!1, false => !!0 };
+use Carp qw(croak);
 
-my $in, $out, $err;
+# TODO read the token codes from minhi-constants.nas in case they ever change
+
+# The Perl port of the numout instruction from ngb.c
+sub int2ascii {
+    my $val = +shift or croak;
+    my $retval = '';
+    my $first = 1;
+
+    # Generate LSB to MSB
+    while(1) {
+        use integer;
+        my $digit = chr( ($val % 26) + ord($first ? 'A' : 'a') );
+            # last char is uppercase
+        $retval = "${digit}${retval}";
+        $first = false;
+    } continue {
+        use integer;
+        $val /= 26;
+        last unless $val>0;
+    }
+
+    return $retval;
+} #int2ascii
+
+# Strlen, but returns the result in numout form
+sub alen {
+    my $token = shift or croak;
+    return int2ascii(length($token));
+} #alen
+
+# Return the string we expect as a copy of the input.  Warning: not reentrant
+sub tokencopy {
+    my $token = shift or croak;
+    return alen($token) . $token;
+} #tokencopy
+
+# A placeholder for the tokencopy() output
+our $T;
+*T = \'You would be crazy to actually put this in a test string!';
 
 sub test {
     my $in = shift;
-    my $out, $err;
+    my ($out, $err);
 
     run3(['./ngb', 'mtok/mtok.ngb'], \$in, \$out, \$err);
 
     foreach my $lrTest (@_) {
         my ($which, $match, $name) = @$lrTest;
+        $match =~ s/$T/tokencopy($in)/e;
         is($out, $match, $name) if $which eq 'out';
         is($err, $match, $name) if $which eq 'err';
     }
-
 } # test()
 
 # A reasonable initial test
@@ -28,17 +70,34 @@ test('$foo->$bar=1-2 ',
 # Identifiers and barewords
 
 test('$_42foo', ['err', '', 'No stderr'],
-    ['out', 'IH$_42fooEA', 'Complex identifier name']);
+    ['out', "I${T}EA", 'Complex identifier name']);
+    # ${T} stands for the numout-format length plus text of the input
 
 test('_42foo', ['err', '', 'No stderr'],
-    ['out', 'BG_42fooEA', 'Complex bareword name']);
+    ['out', "B${T}EA", 'Complex bareword name']);
 
 # Operator punctuation
 
 for my $op (split //, '()"\[\]^*/+,;\\') {
     test($op, ['err','','No stderr'],
-        ['out', "${op}B${op}EA", "Operator $op"]);
+        ['out', "${op}${T}EA", "Operator $op"]);
 }
+
+# Numbers
+
+for my $num (1, 12, 123, 1234, 12345) {
+    test($num, ['err', '', 'No stderr'],
+        ['out', "N${T}EA", "Digit $num"]);
+}
+
+# Standalone operators.  TODO add the rest of these.
+
+for my $hrOp (['??', '?'], ['::', ':']) {
+    test($hrOp->[0], ['err', '', 'No stderr'],
+        ['out', "$hrOp->[1]${T}EA",
+            "Operator $hrOp->[0]"]);
+}
+
 
 # TODO test empty input
 
