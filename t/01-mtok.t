@@ -35,22 +35,43 @@ sub tokencopy { # Return the string we expect as a copy of the input. {{{1
     return alen($token) . $token;
 } #tokencopy }}}1
 
-# A placeholder for the tokencopy() output {{{1
+# Variables used by test() {{{1
+
+# A placeholder for the tokencopy() output
 our $T;
 *T = \'You would be crazy to actually put this in a test string!';
+
 # }}}1
 
 sub test {  # Run ngb and test the output {{{1
+    state $testnum = 0;     # which test this is
+
     my $in = shift;
     my ($out, $err);
+    my $wasrun;
 
-    run3(['./ngb', 'mtok/mtok.ngb'], \$in, \$out, \$err);
+    local *runme = sub {
+        run3(['./ngb', 'mtok/mtok.ngb'], \$in, \$out, \$err) unless $wasrun;
+        $wasrun = 1;
+    };
 
     foreach my $lrTest (@_) {
         my ($which, $match, $name) = @$lrTest;
         $match =~ s/$T/tokencopy($in)/e;
-        is($out, $match, $name) if $which eq 'out';
-        is($err, $match, $name) if $which eq 'err';
+
+        SKIP: if($which eq 'out') {
+            ++$testnum;
+            skip "Not this time", 1 if 0;   # TODO skip if prove(1) didn't ask us to run this one
+            runme();
+            is($out, $match, $name);
+        }
+
+        SKIP: if($which eq 'err') {
+            ++$testnum;
+            skip "Not this time", 1 if 0;   # TODO skip if prove(1) didn't ask us to run this one
+            runme();
+            is($err, $match, $name);
+        }
     }
 } # test() }}}1
 
@@ -58,15 +79,18 @@ sub test {  # Run ngb and test the output {{{1
 # Tests, in the order they appear in minhi-constants.nas.
 
 # General TODO: add failure tests for all of these
+# General TODO: Break this into multiple *.t files so prove --state=failed
+# will work.
 
 # A reasonable initial test
-test('$foo->$bar=1-2 ',
+test('$foo->$bar:=1-2 ',
     ['err', '', 'No stderr'],
-    ['out', 'IE$foo' . 'wC->' . 'IE$bar' . '=B=' . 'NB1' . '-B-' . 'NB2' .
+    ['out', 'IE$foo' . 'wC->' . 'IE$bar' . '=C:=' . 'NB1' . '-B-' . 'NB2' .
         'RB ' . 'EA', 'Tokenizes successfully']
 );
 
-# TODO test empty input (T_EOF)
+# Test empty input (T_EOF)
+test('', ['err', '', 'No stderr'], ['out', 'EA', 'Empty input']);
 
 # Whitespace (T_IGNORE)
 
@@ -106,8 +130,8 @@ for my $op (split //, '()"\[\]^*/+,;\\') {
 
             #   op   T_*
 for my $hrOp (['??', '?'], ['::', ':'], ['-', '-'], ['<=', '{'],
-                ['>=', '}'], ['<', '<'], ['>', '>'], ['==', '~'],
-                ['<>','!'], ['<=>', 's'], ['->', 'w'], ['=', '=']) {
+                ['>=', '}'], ['<', '<'], ['>', '>'], ['=', '~'],
+                ['<>','!'], ['<=>', 's'], ['->', 'w'], [':=', '=']) {
     test($hrOp->[0], ['err', '', 'No stderr'],
         ['out', "$hrOp->[1]${T}EA",
             "Operator $hrOp->[0]"]);
