@@ -3,38 +3,6 @@ use DTest;
 
 # TODO read the token codes from minhi-constants.nas in case they ever change
 
-sub int2ascii { # The Perl port of the numout instruction from ngb.c {{{1
-    my $val = +shift or croak;
-    my $retval = '';
-    my $first = 1;
-
-    # Generate LSB to MSB
-    while(1) {
-        use integer;
-        my $digit = chr( ($val % 26) + ord($first ? 'A' : 'a') );
-            # last char is uppercase
-        $retval = "${digit}${retval}";
-        $first = false;
-    } continue {
-        use integer;
-        $val /= 26;
-        last unless $val>0;
-    }
-
-    return $retval;
-} #int2ascii }}}1
-
-sub alen { # Strlen, but returns the result in numout form  {{{1
-    my $token = shift or croak;
-    return int2ascii(length($token));
-} #alen }}}1
-
-sub tokencopy { # Return the string we expect as a copy of the input. {{{1
-    # Warning: not reentrant
-    my $token = shift or croak;
-    return alen($token) . $token;
-} #tokencopy }}}1
-
 # Variables used by test() {{{1
 
 # A placeholder for the tokencopy() output
