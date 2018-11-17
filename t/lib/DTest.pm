@@ -1,6 +1,7 @@
 # DTest.pm: test kit for do-not-self-host
 
 package DTest;
+use feature qw(:5.10);
 
 use parent 'Exporter';
 use Import::Into;
@@ -18,6 +19,7 @@ sub import {
 
     # Re-export pragmas
     constant->import::into($target, {true => !!1, false => !!0});
+    feature->import::into($target, qw(:5.10));
     foreach my $pragma (qw(strict warnings)) {
         ${pragma}->import::into($target);
     };

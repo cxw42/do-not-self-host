@@ -15,6 +15,9 @@ core
 
 /future
 
+# Testing files
+.prove
+
 # Auto-extracted or generated files
 /ngbasm.py
 *.geninc
