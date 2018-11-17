@@ -1,6 +1,6 @@
 # mtok.nas Makefile
 
-mtok.ngb: mtok.nas state-machine.geninc ../ngbasm.py
+mtok.ngb: mtok.nas state-machine.geninc ../ngbasm.py ../minhi-constants.nas
 	-rm $@
 	../ngbasm.py $< $@
 

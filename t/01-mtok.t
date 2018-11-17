@@ -3,8 +3,7 @@ use DTest;
 
 # TODO read the token codes from minhi-constants.nas in case they ever change
 
-# The Perl port of the numout instruction from ngb.c
-sub int2ascii {
+sub int2ascii { # The Perl port of the numout instruction from ngb.c {{{1
     my $val = +shift or croak;
     my $retval = '';
     my $first = 1;
@@ -23,25 +22,25 @@ sub int2ascii {
     }
 
     return $retval;
-} #int2ascii
+} #int2ascii }}}1
 
-# Strlen, but returns the result in numout form
-sub alen {
+sub alen { # Strlen, but returns the result in numout form  {{{1
     my $token = shift or croak;
     return int2ascii(length($token));
-} #alen
+} #alen }}}1
 
-# Return the string we expect as a copy of the input.  Warning: not reentrant
-sub tokencopy {
+sub tokencopy { # Return the string we expect as a copy of the input. {{{1
+    # Warning: not reentrant
     my $token = shift or croak;
     return alen($token) . $token;
-} #tokencopy
+} #tokencopy }}}1
 
-# A placeholder for the tokencopy() output
+# A placeholder for the tokencopy() output {{{1
 our $T;
 *T = \'You would be crazy to actually put this in a test string!';
+# }}}1
 
-sub test {
+sub test {  # Run ngb and test the output {{{1
     my $in = shift;
     my ($out, $err);
 
@@ -53,7 +52,12 @@ sub test {
         is($out, $match, $name) if $which eq 'out';
         is($err, $match, $name) if $which eq 'err';
     }
-} # test()
+} # test() }}}1
+
+##############################################################################
+# Tests, in the order they appear in minhi-constants.nas.
+
+# General TODO: add failure tests for all of these
 
 # A reasonable initial test
 test('$foo->$bar=1-2 ',
@@ -62,20 +66,26 @@ test('$foo->$bar=1-2 ',
         'RB ' . 'EA', 'Tokenizes successfully']
 );
 
+# TODO test empty input (T_EOF)
+
+# Whitespace (T_IGNORE)
+
+for my $ws (" ", "  ", "\t", "\r", "\n", "\r\n", "  \t\t   \r  \n\r\n") {
+    test($ws, ['err', '', 'No stderr'],
+        ['out', "R${T}EA", "Whitespace: " . unpack('H*', $ws)]);
+}
+
 # Identifiers and barewords
 
-test('$_42foo', ['err', '', 'No stderr'],
-    ['out', "I${T}EA", 'Complex identifier name']);
-    # ${T} stands for the numout-format length plus text of the input
+for my $id ('$_42foo', '@a', '%b', '#c', '!d', '&e') {
+    test($id, ['err', '', 'No stderr'],
+        ['out', "I${T}EA", "Identifier $id"]);
+        # ${T} stands for the numout-format length plus text of the input
+}
 
-test('_42foo', ['err', '', 'No stderr'],
-    ['out', "B${T}EA", 'Complex bareword name']);
-
-# Operator punctuation
-
-for my $op (split //, '()"\[\]^*/+,;\\') {
-    test($op, ['err','','No stderr'],
-        ['out', "${op}${T}EA", "Operator $op"]);
+for my $bw ('_42foo', 'a', 'a1', 'a_1', 'bkdhjkhdfgkjhdfgkjdhfgkjdhfgkjdhfg') {
+    test($bw, ['err', '', 'No stderr'],
+        ['out', "B${T}EA", "Bareword $bw"]);
 }
 
 # Numbers
@@ -85,20 +95,24 @@ for my $num (1, 12, 123, 1234, 12345) {
         ['out', "N${T}EA", "Digit $num"]);
 }
 
-# Standalone operators.  TODO add the rest of these.
+# Operator punctuation
 
-for my $hrOp (['??', '?'], ['::', ':']) {
+for my $op (split //, '()"\[\]^*/+,;\\') {
+    test($op, ['err','','No stderr'],
+        ['out', "${op}${T}EA", "Operator $op"]);
+}
+
+# Standalone operators
+
+            #   op   T_*
+for my $hrOp (['??', '?'], ['::', ':'], ['-', '-'], ['<=', '{'],
+                ['>=', '}'], ['<', '<'], ['>', '>'], ['==', '~'],
+                ['<>','!'], ['<=>', 's'], ['->', 'w'], ['=', '=']) {
     test($hrOp->[0], ['err', '', 'No stderr'],
         ['out', "$hrOp->[1]${T}EA",
             "Operator $hrOp->[0]"]);
 }
 
-# Whitespace
-for my $ws (" ", "  ", "\t", "\r", "\n", "\r\n", "  \t\t   \r  \n\r\n") {
-    test($ws, ['err', '', 'No stderr'],
-        ['out', "R${T}EA", "Whitespace: " . unpack('H*', $ws)]);
-}
-
-# TODO test empty input
-
 done_testing();
+
+# vi: set fdm=marker: #
