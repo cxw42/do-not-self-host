@@ -29,19 +29,35 @@ it can).  The Buck [FAQ](https://buckbuild.com/concept/faq.html) says, in part:
 > A: Self-hosting systems can be more difficult to maintain and debug.
 If Buck built itself using Buck, then every time a change was made to Buck's source, the commit would have to include a new Buck binary that included that change. It would be easy to forget to include the binary, difficult to verify that it was the correct binary, and wasteful to bloat the Git history of the repository with binaries that could be rebuilt from source. Building Buck using Ant ensures we are always building from source, which is simpler to verify.
 
-## Testing
+## Installation and testing
 
-Tests use Perl's [`prove`](https://metacpan.org/pod/prove).  To run the tests,
-install Perl and cpanminus (e.g., using [perlbrew](https://perlbrew.pl/)).
-Then:
+The code is currently C and Python, but the infrastructure runs in Perl.
+Tests use Perl's [`prove`](https://metacpan.org/pod/prove).
+
+### Building
+
+- If you don't already have it, install Perl
+  (e.g., using [perlbrew](https://perlbrew.pl/)).
+- Install [cpanminus](https://github.com/miyagawa/cpanminus).
+
+Then build using:
 
     perl Makefile.PL
     cpanm --installdeps .
-    prove
+    make
+    cd mtok
+    make
 
-The `perl` step will generate a `Makefile.dummy`, which you can ignore.
+Once you have run the `perl` and `cpanm` steps, you shouldn't need to do so
+again if you are only working on the C/Python/ngbasm sources.  Just run
+`make` as necessary.
 
-## Notes
+### Testing
+
+Once you have done the build steps, run `prove` or `make test` in the top
+level of the repository.
+
+## Older notes
 
 Based on [crcx/Nga-Bootstrap](https://github.com/crcx/Nga-Bootstrap), which
 provides:

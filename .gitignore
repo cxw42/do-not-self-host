@@ -19,6 +19,7 @@ core
 .prove
 
 # Auto-extracted or generated files
+/Makefile
 /ngbasm.py
 *.geninc
 
@@ -31,6 +32,8 @@ core
 *.svg
 *.txt
 *.csv
+
+#... Except that this one is part of the input to mtok.
 !mtok/mtok.csv
 
 # from GitHub's perl .gitignore:

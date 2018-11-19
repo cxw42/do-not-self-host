@@ -25,7 +25,7 @@ sub MY::post_initialize {
     $tgt =~ s/^(\w+).*/$1/s;
 
     # Get our actual Makefile, which must not use the "all" target
-    my $custom = read_file('Makefile', err_mode => 'carp');
+    my $custom = read_file('Makefile.in', err_mode => 'carp');
     my $custom_tgt = 'custom';
     $custom_tgt = $1 if $custom =~ m/^(\w+):/m;
 
@@ -44,10 +44,6 @@ EOT
 # === Write the makefile ==================================================
 
 WriteMakefile(
-    #FIRST_MAKEFILE   => File::Spec->devnull,
-        # Can't do this because EUMM tries to rename the generated file to
-        # $FIRST_MAKEFILE.
-    FIRST_MAKEFILE   => 'Makefile.dummy',
     NAME             => 'NonPerl::DoNotSelfHost',
     AUTHOR           => q{Christopher White <cxwembedded@gmail.com>},
     VERSION          => qv(0.0.1),
