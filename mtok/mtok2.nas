@@ -22,7 +22,7 @@
 :main
 
     ; Main loop.  Each time through handles one token.  {{{2
-:main_loop
+:main_loop              ; ]
 
     ; Get the token code
     in                  ; char ]
@@ -32,34 +32,47 @@
     iseof               ; char flag ]
     cjump &main_done    ; char ]
 
+    dup                 ; char char ]
+    eq T_EOF            ; char flag ]
+    cjump &main_done    ; char ]
+
     ; Save the token code
     dup                 ; char char ]
     store &curr_token   ; char ]
 
     ; Get the count
     numin               ; char count ]
-    store &data_len     ; char ]
+    dup                 ; char count count ]
+    store &data_len     ; char count ]
 
-    call &read_token_text   ; char ]
+    out '<
+    call &read_token_text   ; char count ]
+    out '>
 
     ; Strip T_IGNORE
-    dup                 ; char char ]
-    eq T_IGNORE         ; char flag ]
-    jump &main_loop     ; char char ]
+    swap                ; count char ]
+    dup                 ; count char char ]
+    eq T_IGNORE         ; count char flag ]
+    cjump &main_loop    ; count char ]
 
     ; TODO rewrite barewords
 
     ; Emit the token code
-    dup                 ; char char ]
-    out                 ; char ]
+    out                 ; count ]
 
-    ; TODO emit the token text if necessary
+    ; Emit the token text.  TODO don't emit if unnecessary.
+    call &write_token_text
 
-    jump &main_loop     ; char ]
+    drop                ; ]
+    jump &main_loop     ; ]
 
 ; end main loop }}}2
 
 :main_done
+    out T_EOF
+    out 'A                  ; == numout 0 => no token data
+
+:main_done_silent
     end
 
 ; }}}1
@@ -77,12 +90,69 @@
     add 1
     store &curr_char_ptr
 
-    return;
+    return
 
-; Read *&data_len characters into the buffer
+; read_token_text: Read TOS characters into &buf.  Leaves the stack unchanged. {{{2
+:read_token_text            ; count ]
     ; Initialize
-    .lit &buf
+    dup                     ; count count ]
+    lit &buf
     store &curr_char_ptr
+    ; FALL THROUGH into &rtt_loop
+
+:rtt_loop                   ; c count ]
+    dup                     ; c count count ]
+    eq 0                    ; c count flag ]
+    cjump &rtt_done         ; c count ]
+    sub 1                   ; c adjusted_count ]
+
+    in                      ; c adjusted_count char ]
+    fetch &curr_char_ptr    ; c adjusted_count char *char]
+    store                   ; c adjusted_count ]
+
+    ; Increment pointer
+    fetch &curr_char_ptr
+    add 1
+    store &curr_char_ptr
+
+    jump &rtt_loop
+
+:rtt_done                   ; count 0 ]
+    drop                    ; count ]
+    return  ; }}}2
+
+; write_token_text: Write TOS characters from &buf.  Leaves the stack unchanged. {{{2
+:write_token_text           ; count ]
+    ; Initialize
+    dup                     ; count count ]
+    lit &buf                ; c count ptr ]
+    swap                    ; c ptr count ]
+    ; FALL THROUGH into &wtt_loop
+
+:wtt_loop                   ; c ptr count ]
+
+    ; Test count
+    dup                     ; c ptr count count ]
+    eq 0                    ; c ptr count flag ]
+    cjump &wtt_done         ; c ptr count ]
+    sub 1                   ; c ptr adjusted_count ]
+
+    ; Write the current char
+    swap                    ; c adjusted_count ptr ]
+    dup                     ; c ac ptr ptr
+    fetch                   ; c ac ptr char ]
+    out                     ; c ac ptr ]
+
+    ; Point to next char
+    add 1                   ; c ac adjusted_ptr ]
+    swap                    ; c adjusted_ptr adjusted_count ]
+
+    jump &wtt_loop
+
+:wtt_done                   ; count ptr 0 ]
+    drop                    ; count ptr ]
+    drop                    ; count ]
+    return ; }}}2
 
 
 ; === Data === {{{2
