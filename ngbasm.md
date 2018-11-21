@@ -6,6 +6,8 @@ source and documentation for ngbasm.  To generate the runnable ngbasm, use
 
     ./extract.py ngbasm.md ngbasm.py
 
+ngb is a little-endian VM, and operates on signed 32-bit integers.
+
 ## Features
 
 ngbasm provides:
@@ -35,12 +37,13 @@ The ngb virtual machine has a very small set of instructions:
 
 ngb shares those instructions with the Ngaro (Nga) VM.  ngb adds:
 
-    27 in
-    28 out
-    29 cjump
-    30 iseof
-    31 numin
-    32 numout
+    27 in       Read one byte from stdin
+    28 out      Write one byte to stdout
+    29 cjump    Jump if TOS is true
+    30 iseof    Test if TOS is an EOF (-1 or ^D)
+    31 numin    Read a number in base-26 ASCII format
+    32 numout   Write a number in base-26 ASCII format
+    33 pull     Grab the value _n_ down on the stack
 
 All instructions except for **lit** are one cell long. **lit** takes two: one
 for the instruction and one for the value to push to the stack.
@@ -207,6 +210,7 @@ instrs = {
     'iseof': 30,
     'numin': 31,
     'numout': 32,
+    'pull': 33,
 }
 
 ````
@@ -259,7 +263,9 @@ def save(filename):
     with open(filename, 'wb') as file:
         j = 0
         while j < i:
-            file.write(struct.pack('i', memory[j]))
+            file.write(struct.pack('<i', memory[j]))
+                # < == little-endian, standard size
+                # i == 4-byte signed integer
             j = j + 1
 
 ````

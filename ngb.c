@@ -7,6 +7,10 @@
    Copyright (c) 2011,        Kenneth Keating
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
+// TODO: add `in8` and `out8` to read/write a UTF8 codepoint.
+// Decoder for in8: http://bjoern.hoehrmann.de/utf-8/decoder/dfa/
+// Encoder for out8: https://github.com/JuliaStrings/utf8proc/blob/master/utf8proc.h#L446
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -41,6 +45,7 @@ enum vm_opcode {  // Note: NOP must always be instruction 0.
   VM_ISEOF,
   VM_NUMIN,
   VM_NUMOUT,
+  VM_PULL,
 
   NUM_OPS
 };
@@ -109,6 +114,19 @@ CELL ngbLoadImage(char *imageFile) {
 void ngbPrepare() {
   ip = sp = rp = max_sp = max_rp = 0;
   // The VM memory was already zero-intialized
+
+  // Check endianness.  TODO support big-endian CPUs.
+  union {
+    unsigned char chars[4];
+    CELL cell;
+  } u;
+
+  u.cell = 1;
+  if(u.chars[0] != 1) {
+    fprintf(stderr, "ngb does not yet know how to run on a big-endian machine\n");
+    exit(1);
+  }
+
 }
 
 void ngbStatsCheckMax() {
@@ -156,6 +174,7 @@ void ngbDisplayStats()
   printf("ISEOF:   %d\n", stats[VM_ISEOF]);
   printf("NUMIN:   %d\n", stats[VM_NUMIN]);
   printf("NUMOUT:   %d\n", stats[VM_NUMOUT]);
+  printf("PULL:     %d\n", stats[VM_PULL]);
   printf("Max sp:  %d\n", max_sp);
   printf("Max rp:  %d\n", max_rp);
 
@@ -422,6 +441,11 @@ void inst_numout() {
   }
 } //inst_numout
 
+void inst_pull() {
+  CELL which = TOS;
+  TOS = data[sp-which];
+}
+
 // Instruction table
 typedef void (*Handler)(void);
 
@@ -436,6 +460,7 @@ Handler instructions[NUM_OPS] = {
   inst_iseof,
   inst_numin,
   inst_numout,
+  inst_pull,
 };
 
 char *instr_names[NUM_OPS] = {
@@ -449,6 +474,7 @@ char *instr_names[NUM_OPS] = {
   "iseof",
   "numin",
   "numout",
+  "pull",
 };
 
 // Interpreter =============================================================
