@@ -48,6 +48,8 @@ ngb shares those instructions with the Ngaro (Nga) VM.  ngb adds:
 All instructions except for **lit** are one cell long. **lit** takes two: one
 for the instruction and one for the value to push to the stack.
 
+Instruction names are always lowercase letters only (`/\b[a-z]+\b/`).
+
 ## Syntax
 
 ngbasm provides a simple syntax. A short example:
@@ -289,7 +291,7 @@ with the offset of the *:main* label.
 def patch_entry():
     main_addr = lookup('main')
     if main_addr == -1:
-        print('main not defined - add a :main line')
+        print('main not defined - add a :main line', file=sys.stderr)
         exit(1)
     memory[1] = main_addr
 
@@ -371,7 +373,7 @@ And we can load blocks of cells using `.reserve`.
 ````
 def handle_reserve(parts):
     val = int(operand_value(parts[1]))
-    print(val)
+    #print(val)
     for i in range(val): comma(0)
 
 ````
@@ -405,7 +407,7 @@ We can also define constants.
 ````
 def handle_const(parts):
     if len(parts) < 3:
-        print('.const <name> <value> missing arguments @', i)
+        print('.const <name> <value> missing arguments @', i, file=sys.stderr)
         exit(1)
     consts[parts[1]] = operand_value(parts[2])
     print('const {} <= {}'.format(parts[1], consts[parts[1]]))
@@ -445,7 +447,7 @@ def handle_directive(parts):
     elif token[0:2] == '.c': handle_const(parts)
     elif token[0:2] == '.r': handle_reserve(parts)
     else:
-        print('Unknown directive ', token)
+        print('Unknown directive ', token, file=sys.stderr)
         exit(1)
 
 ````
@@ -462,9 +464,10 @@ def assemble(lineno, line):
     # Super-simple debug assistance
     print('{}:{}'.format(filenames[-1], lineno))
 
-    if line == '': return
-
+    # Skip blank lines
     parts = line.split()
+    if len(parts) == 0: return
+
     token = parts[0]
 
     if token[0] == ';':     # Comment
@@ -476,21 +479,29 @@ def assemble(lineno, line):
         handle_directive(parts)
     elif is_inst(token):
         op = map_to_inst(token)
-        if op == -1:
-            print('Unknown instruction ', token)
-            exit(1)
 
         if len(parts) > 1:
             handle_lit(('lit', parts[1]))
 
-
         # Operands become lits, so if the instruction is `lit` itself,
         # we're already done!
-        if op != instrs['lit']: comma(op)
+        if op != instrs['lit']:
+            comma(op)
+        else:
+            print(parts)
+            if len(parts) <= 1:
+                print('lit requires an operand', file=sys.stderr)
+                print(lineno, ': ', line, file=sys.stderr)
+                exit(1)
+
+    elif re.compile('^[a-z]+$').match(token):   # it looks like an instr but isn't
+        print('Unknown instruction ', token, file=sys.stderr)
+        exit(1)
+
     else:
-        print('Line was not something I know how to handle.')
-        print(lineno, ': ', line)
-        exit()
+        print('Line was not something I know how to handle.', file=sys.stderr)
+        print(lineno, ': ', line, file=sys.stderr)
+        exit(1)
 
 ````
 
@@ -507,8 +518,8 @@ def resolve_labels():
         except ValueError:
             value = lookup(cell[1:])  # Ignore the '&' at the start of the label
             if value == -1:
-                print('Label ', cell, ' not found!')
-                exit()
+                print('Label ', cell, ' not found!', file=sys.stderr)
+                exit(1)
         results.append(value)
     memory = results
 
