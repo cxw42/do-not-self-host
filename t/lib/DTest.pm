@@ -1,7 +1,7 @@
 # DTest.pm: test kit for do-not-self-host
 
 package DTest;
-use feature qw(:5.10);
+use feature qw(:5.12);
 use strict;
 use warnings;
 
@@ -10,10 +10,30 @@ use Import::Into;
 
 use Test::More;
 use IPC::Run3;
+#use Test::LongString;
 use Carp qw(carp croak);
 use constant { true => !!1, false => !!0 };
 
-our @EXPORT = qw(int2ascii alen tokencopy);
+our @EXPORT = qw(int2ascii alen tokencopy contains_string);
+
+sub contains_string($$;$) {   # Adapted from Test::LongString {{{1
+    my ($str,$sub,$name) = @_;
+
+    my $ok;
+    if (!defined $str) {
+        ok(0, $name);
+        diag("String to look in is undef");
+    } elsif (!defined $sub) {
+        ok(0, $name);
+        diag("String to look for is undef");
+    } else {
+        $str = '' . $str;
+        $sub = '' . $sub;
+        my $index = index($str, $sub);
+        diag("Looking for $sub in $str: $index");
+        ok($index >= 0, $name);
+    }
+} # }}}1
 
 sub int2ascii { # The Perl port of the numout instruction from ngb.c {{{1
     my $val = shift;
@@ -58,7 +78,7 @@ sub import { # {{{1
 
     # Re-export pragmas
     constant->import::into($target, {true => !!1, false => !!0});
-    feature->import::into($target, qw(:5.10));
+    feature->import::into($target, qw(:5.12));
     foreach my $pragma (qw(strict warnings)) {
         ${pragma}->import::into($target);
     };

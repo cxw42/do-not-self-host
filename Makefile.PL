@@ -55,6 +55,7 @@ WriteMakefile(
         'File::Slurp' => '0',
         #'File::Spec' => '0',
         'Test::Cmd' => '0',
+        #'Test::LongString' => '0',
         'version' => '0.77',
     },
     BUILD_REQUIRES => {

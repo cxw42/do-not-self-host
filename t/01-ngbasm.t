@@ -2,6 +2,7 @@ use rlib 'lib';
 use DTest;
 use Test::Cmd;
 use File::Slurp;
+#use Data::Dumper;
 
 sub test {  # Run ngb and test the output {{{1
     state $testnum = 0;     # which test this is
@@ -32,29 +33,40 @@ sub test {  # Run ngb and test the output {{{1
         $out = $test->stdout;
         $err = $test->stderr;
         $test->read(\$result, 'dest');
-        diag('Got result ' . unpack('H*',$result));
+        #diag('Got result ' . unpack('H*',$result));
         $wasrun = 1;
     };
 
     foreach my $lrTest (@_) {
         my ($which, $match, $name) = @$lrTest;
+        $name //= "Look for $match in $which of $in";
         #$match =~ s/$T/tokencopy($in)/e;
+
+        local *check = sub {
+            if(ref $match ne 'SCALAR') {
+                is(shift, $match, $name);
+            } else {
+                diag("Checking if it contains $$match");
+                contains_string(shift, $$match, $name);
+            }
+        };
 
         SKIP: if($which eq 'out') {
             ++$testnum;
             skip "Not this time", 1 if 0;   # TODO skip if prove(1) didn't ask us to run this one
             runme();
-            is($out, $match, $name);
+            check($out);
         }
 
         SKIP: if($which eq 'err') {
             ++$testnum;
             skip "Not this time", 1 if 0;   # TODO skip if prove(1) didn't ask us to run this one
             runme();
-            is($err, $match, $name);
+            diag($err);
+            check($err);
         }
 
-        SKIP: if($which eq 'result') {
+        SKIP: if($which eq 'result') {  # Note: substrings not supported
             ++$testnum;
             skip "Not this time", 1 if 0;   # TODO skip if prove(1) didn't ask us to run this one
             runme();
@@ -70,16 +82,73 @@ sub test {  # Run ngb and test the output {{{1
 # Tests
 
 # Generate instructions
-sub instrs { return pack('l<*', @_); }
+sub asm { return pack('l<*', @_); }
 
 # Standard preamble for &main as the first thing in the file.
-my $preamble = instrs(1, 3, 7);
+my $preamble = asm(1, 3, 7);
 
 # `end` instruction, which ngbasm always adds
-my $end = instrs(26);
+my $end = asm(26);
 
-test(":main\nnop", ['err', '', 'No stderr'],
-    ['result', $preamble . instrs(0) . $end , 'Single NOP']);
+my @instrs = (
+    'nop',
+    'lit',
+    'dup',
+    'drop',
+    'swap',
+    'push',
+    'pop',
+    'jump',
+    'call',
+    'ccall',
+    'return',
+    'eq',
+    'neq',
+    'lt',
+    'gt',
+    'fetch',
+    'store',
+    'add',
+    'sub',
+    'mul',
+    'divmod',
+    'and',
+    'or',
+    'xor',
+    'shift',
+    'zret',
+    'end',
+
+    'in',
+    'out',
+    'cjump',
+    'iseof',
+    'numin',
+    'numout',
+    'pull',
+);
+
+# Test unknown instruction.  \'' => contains, not is.
+test(":main\nnotaninstructionreallyforsure", { shouldfail=>true },
+    ['err', \'Unknown instruction', 'Unknown instructions cause failure']);
+
+done_testing;
+exit;
+
+# Test everything but lit, since only lit has a required argument
+while( my ($idx, $opname) = each @instrs ) {
+    next if $opname eq 'lit';
+    test(":main\n$opname", ['err', '', 'No stderr'],
+        ['result', $preamble . asm($idx) . $end , "Single $opname"]);
+}
+
+# Test lit
+test(":main\nlit 42", ['err', '', 'No stderr'],
+    ['result', $preamble . asm(1, 42) . $end , "lit with operand"]);
+
+# Test lit without operand
+test(":main\nlit", {shouldfail=>true},
+    ['err', \'requires an operand', 'Lit requires operand']);
 
 done_testing();
 
