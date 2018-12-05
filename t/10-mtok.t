@@ -1,5 +1,6 @@
 use rlib 'lib';
 use DTest;
+use Test::OnlySome::RerunFailed;
 
 # TODO read the token codes from minhi-constants.nas in case they ever change
 
@@ -12,8 +13,6 @@ our $T;
 # }}}1
 
 sub test {  # Run ngb and test the output {{{1
-    state $testnum = 0;     # which test this is
-
     my $in = shift;
     my ($out, $err);
     my $wasrun;
@@ -27,16 +26,12 @@ sub test {  # Run ngb and test the output {{{1
         my ($which, $match, $name) = @$lrTest;
         $match =~ s/$T/tokencopy($in)/e;
 
-        SKIP: if($which eq 'out') {
-            ++$testnum;
-            skip "Not this time", 1 if 0;   # TODO skip if prove(1) didn't ask us to run this one
+        if($which eq 'out') {
             runme();
             is($out, $match, $name);
         }
 
-        SKIP: if($which eq 'err') {
-            ++$testnum;
-            skip "Not this time", 1 if 0;   # TODO skip if prove(1) didn't ask us to run this one
+        if($which eq 'err') {
             runme();
             is($err, $match, $name);
         }
@@ -51,46 +46,46 @@ sub test {  # Run ngb and test the output {{{1
 # will work.
 
 # A reasonable initial test
-test('$foo->$bar:=1-2 ',
+os 2 test('$foo->$bar:=1-2 ',
     ['err', '', 'No stderr'],
     ['out', 'IE$foo' . 'wC->' . 'IE$bar' . '=C:=' . 'NB1' . '-B-' . 'NB2' .
         'RB ' . 'EA', 'Tokenizes successfully']
 );
 
 # Test empty input (T_EOF)
-test('', ['err', '', 'No stderr'], ['out', 'EA', 'Empty input']);
+os 2 test('', ['err', '', 'No stderr'], ['out', 'EA', 'Empty input']);
 
 # Whitespace (T_IGNORE)
 
 for my $ws (" ", "  ", "\t", "\r", "\n", "\r\n", "  \t\t   \r  \n\r\n") {
-    test($ws, ['err', '', 'No stderr'],
+    os 2 test($ws, ['err', '', 'No stderr'],
         ['out', "R${T}EA", "Whitespace: " . unpack('H*', $ws)]);
 }
 
 # Identifiers and barewords
 
 for my $id ('$_42foo', '@a', '%b', '#c', '!d', '&e') {
-    test($id, ['err', '', 'No stderr'],
+    os 2 test($id, ['err', '', 'No stderr'],
         ['out', "I${T}EA", "Identifier $id"]);
         # ${T} stands for the numout-format length plus text of the input
 }
 
 for my $bw ('_42foo', 'a', 'a1', 'a_1', 'bkdhjkhdfgkjhdfgkjdhfgkjdhfgkjdhfg') {
-    test($bw, ['err', '', 'No stderr'],
+    os 2 test($bw, ['err', '', 'No stderr'],
         ['out', "B${T}EA", "Bareword $bw"]);
 }
 
 # Numbers
 
 for my $num (1, 12, 123, 1234, 12345) {
-    test($num, ['err', '', 'No stderr'],
+    os 2 test($num, ['err', '', 'No stderr'],
         ['out', "N${T}EA", "Digit $num"]);
 }
 
 # Operator punctuation
 
 for my $op (split //, '()"\[\]^*/+,;\\') {
-    test($op, ['err','','No stderr'],
+    os 2 test($op, ['err','','No stderr'],
         ['out', "${op}${T}EA", "Operator $op"]);
 }
 
@@ -100,9 +95,8 @@ for my $op (split //, '()"\[\]^*/+,;\\') {
 for my $hrOp (['??', '?'], ['::', ':'], ['-', '-'], ['<=', '{'],
                 ['>=', '}'], ['<', '<'], ['>', '>'], ['=', '~'],
                 ['<>','!'], ['<=>', 's'], ['->', 'w'], [':=', '=']) {
-    test($hrOp->[0], ['err', '', 'No stderr'],
-        ['out', "$hrOp->[1]${T}EA",
-            "Operator $hrOp->[0]"]);
+    os 2 test($hrOp->[0], ['err', '', 'No stderr'],
+        ['out', "$hrOp->[1]${T}EA", "Operator $hrOp->[0]"]);
 }
 
 done_testing();

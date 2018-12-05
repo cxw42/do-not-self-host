@@ -6,4 +6,7 @@ ngb_all: ngb ngbasm.py
 	./extract.py $^ $@
 	chmod a+x $@
 
+clean ::
+	-rm ngb ngb.exe ngbasm.py
+
 # Use the default rule for %: %.c

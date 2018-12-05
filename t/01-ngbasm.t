@@ -3,10 +3,9 @@ use DTest;
 use Test::Cmd;
 use File::Slurp;
 #use Data::Dumper;
+use Test::OnlySome::RerunFailed;
 
 sub test {  # Run ngb and test the output {{{1
-    state $testnum = 0;     # which test this is
-
     my $in = shift;
     my ($out, $err, $result);
 
@@ -46,29 +45,22 @@ sub test {  # Run ngb and test the output {{{1
             if(ref $match ne 'SCALAR') {
                 is(shift, $match, $name);
             } else {
-                diag("Checking if it contains $$match");
+                #diag("Checking if it contains $$match");
                 contains_string(shift, $$match, $name);
             }
         };
 
-        SKIP: if($which eq 'out') {
-            ++$testnum;
-            skip "Not this time", 1 if 0;   # TODO skip if prove(1) didn't ask us to run this one
+        if($which eq 'out') {
             runme();
             check($out);
         }
 
-        SKIP: if($which eq 'err') {
-            ++$testnum;
-            skip "Not this time", 1 if 0;   # TODO skip if prove(1) didn't ask us to run this one
+        if($which eq 'err') {
             runme();
-            diag($err);
             check($err);
         }
 
-        SKIP: if($which eq 'result') {  # Note: substrings not supported
-            ++$testnum;
-            skip "Not this time", 1 if 0;   # TODO skip if prove(1) didn't ask us to run this one
+        if($which eq 'result') {  # Note: substrings not supported
             runme();
             is(unpack('H*',$result), unpack('H*',$match), $name);
                 # unpack => test string against string.  unpack() takes
@@ -129,25 +121,22 @@ my @instrs = (
 );
 
 # Test unknown instruction.  \'' => contains, not is.
-test(":main\nnotaninstructionreallyforsure", { shouldfail=>true },
+os 2 test(":main\nnotaninstructionreallyforsure", { shouldfail=>true },
     ['err', \'Unknown instruction', 'Unknown instructions cause failure']);
-
-done_testing;
-exit;
 
 # Test everything but lit, since only lit has a required argument
 while( my ($idx, $opname) = each @instrs ) {
     next if $opname eq 'lit';
-    test(":main\n$opname", ['err', '', 'No stderr'],
+    os 2 test(":main\n$opname", ['err', '', 'No stderr'],
         ['result', $preamble . asm($idx) . $end , "Single $opname"]);
 }
 
 # Test lit
-test(":main\nlit 42", ['err', '', 'No stderr'],
+os 2 test(":main\nlit 42", ['err', '', 'No stderr'],
     ['result', $preamble . asm(1, 42) . $end , "lit with operand"]);
 
 # Test lit without operand
-test(":main\nlit", {shouldfail=>true},
+os test(":main\nlit", {shouldfail=>true},
     ['err', \'requires an operand', 'Lit requires operand']);
 
 done_testing();

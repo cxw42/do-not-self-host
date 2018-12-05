@@ -21,16 +21,14 @@ sub contains_string($$;$) {   # Adapted from Test::LongString {{{1
 
     my $ok;
     if (!defined $str) {
-        ok(0, $name);
-        diag("String to look in is undef");
+        ok(0, $name . ' ===> String to look in is undef');
     } elsif (!defined $sub) {
-        ok(0, $name);
-        diag("String to look for is undef");
+        ok(0, $name . ' ===> String to look for is undef');
     } else {
         $str = '' . $str;
         $sub = '' . $sub;
         my $index = index($str, $sub);
-        diag("Looking for $sub in $str: $index");
+        #diag("Looking for $sub in $str: $index");
         ok($index >= 0, $name);
     }
 } # }}}1

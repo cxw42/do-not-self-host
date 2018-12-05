@@ -17,11 +17,13 @@ core
 
 # Testing files
 .prove
+.onlysome.yml
 
 # Auto-extracted or generated files
 /Makefile
 /ngbasm.py
 *.geninc
+*.old
 
 # VM bytecode files
 *.ngb

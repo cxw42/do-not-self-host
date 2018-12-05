@@ -17,6 +17,7 @@ sub MY::libscan {
 }
 
 # Hijack the Makefile so that our build steps run instead of EUMM's.
+# Also add testhere target.
 sub MY::post_initialize {
     my $self = shift;
 
@@ -37,9 +38,23 @@ eumm: $tgt
 test :: $custom_tgt
 
 $custom
+
 EOT
 
 } # MY::post_initialize
+
+sub MY::postamble {     # TODO also handle Windows nmake syntax (SET vs. export)
+    return <<EOT;
+testhere:   # Run the tests from lib rather than blib, and use osprove
+\tosprove -lj4 t/*
+
+testclean:
+\t-rm .onlysome.yml
+
+EOT
+} #MY::postamble
+
+
 
 # === Write the makefile ==================================================
 
@@ -67,6 +82,7 @@ WriteMakefile(
         'IPC::Run3' => '0',
         'rlib' => '0',
         'Test::Harness' => '0',
+        'Test::OnlySome' => '0.000008',
     },
     META_MERGE => {
         'meta-spec' => { version => 2 },
