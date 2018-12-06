@@ -45,7 +45,7 @@ with open(sys.argv[1], newline='') as csvfile:
     going = False
     for row in reader:
         # Skip past header and any rows above it
-        if row[0]=='NFA STATE':
+        if row[0].upper()=='NFA STATE':
             going = True
             continue
         elif not going:
@@ -199,4 +199,4 @@ if len(sys.argv)<3 or sys.argv[2] == 'emitter':
 # endif generating the emitter
 
 # Always
-print("\n; vi: set ft=ngbasm:")
+print("\n; vi" + ": set ft=ngbasm:")    # split it up so it's not a modeline

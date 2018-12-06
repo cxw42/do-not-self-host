@@ -45,7 +45,8 @@ EOT
 
 sub MY::postamble {     # TODO also handle Windows nmake syntax (SET vs. export)
     return <<EOT;
-testhere:   # Run the tests from lib rather than blib, and use osprove
+# Run the tests from lib rather than blib, and use osprove
+testhere: very_first_target
 \tosprove -lj4 t/*
 
 testclean:
@@ -64,7 +65,7 @@ WriteMakefile(
     VERSION          => qv(0.0.1),
     ABSTRACT         => 'Testing support for do-not-self-host',
     LICENSE          => 'open_source',  # ISC, in fact
-    MIN_PERL_VERSION => '5.010',
+    MIN_PERL_VERSION => '5.016',    # because of Data::DFA
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => '0',
         'File::Slurp' => '0',
@@ -74,7 +75,10 @@ WriteMakefile(
         'version' => '0.77',
     },
     BUILD_REQUIRES => {
+        'Data::DFA' => '0',
+        'List::MoreUtils' => '0',
         'Test::More' => '0',
+        'Text::CSV' => '0',
     },
     TEST_REQUIRES => {
         'Cwd' => '0',

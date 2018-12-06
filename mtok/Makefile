@@ -12,6 +12,9 @@ mtok.ngb: mtok.nas $(DEPS)
 
 mtok2.ngb: mtok2.nas $(DEPS)
 
-state-machine.geninc: mtok.csv state-machine.py
+state-machine.geninc: mtok-generated.csv state-machine.py
 	./state-machine.py $< > $@
+
+mtok-generated.csv: make-mtok-csv.pl
+	./make-mtok-csv.pl > $@
 
