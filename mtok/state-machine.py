@@ -27,6 +27,7 @@
 
 import sys
 import csv
+import datetime
 
 if len(sys.argv)<2:
     print('''\
@@ -36,15 +37,26 @@ Optional "which" is "table", "machine", or "emitter" (default all three).
 ''')
     exit(1)
 
+print('; state machine generated ',
+        datetime.datetime.now().strftime('%c'))
 ### Read ################################################################
 
 states = []     # in order, so we can make a jump table
+emits = {}
 
 with open(sys.argv[1], newline='') as csvfile:
     reader = csv.reader(csvfile)
     going = False
     for row in reader:
-        # Skip past header and any rows above it
+
+        # EMIT table entries
+        if row[0].upper() =='EMIT':
+            emits[row[1]] = row[2]
+            continue
+
+        # TODO character class table
+
+        # Otherwise, skip past header and any rows above it
         if row[0].upper()=='NFA STATE':
             going = True
             continue
@@ -61,6 +73,14 @@ with open(sys.argv[1], newline='') as csvfile:
         # next col
     # next row
 # end reader
+
+### Emit table ##########################################################
+print('''
+; Emit table
+''')
+for (k,v) in emits.items():
+    print('.const E_{} {}'.format(k,v))
+# next emits
 
 ### Table ###############################################################
 

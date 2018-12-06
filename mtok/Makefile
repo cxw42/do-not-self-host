@@ -1,6 +1,6 @@
 # mtok.nas Makefile
 
-DEPS = state-machine.geninc ../ngbasm.py ../minhi-constants.nas
+DEPS = state-machine.geninc ../ngbasm.py ../minhi-constants.nas make-mtok-csv.pl
 
 all: mtok.ngb mtok2.ngb
 

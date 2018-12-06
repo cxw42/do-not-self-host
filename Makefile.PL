@@ -77,6 +77,7 @@ WriteMakefile(
     BUILD_REQUIRES => {
         'Data::DFA' => '0',
         'List::MoreUtils' => '0',
+        'List::Util' => '0',
         'Test::More' => '0',
         'Text::CSV' => '0',
     },

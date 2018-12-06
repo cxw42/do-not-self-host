@@ -289,8 +289,8 @@
 
 :main
 
-    ; Initialize: start in state A
-    lit S_A
+    ; Initialize: start in state 0
+    lit S_0
     store &state
     lit &curr_token             ; &curr_token[0] ]
     store &curr_token_pointer   ; ] - curr_token_pointer := &curr_token[0]
@@ -419,7 +419,7 @@
     ; First, if we were in state A, abort, so that we don't get into an
     ; infinite loop.
     fetch &state        ; state ]
-    eq S_A              ; flag ]
+    eq S_0              ; flag ]
     cjump &main_done    ; ]
 
     ; TODO reset the curr_token buffer to contain the
@@ -428,7 +428,7 @@
 
     ; Reset to state A and try again with the same character
 ;    out '% ; DEBUG
-    lit S_A             ; S_A ]
+    lit S_0             ; S_0 ]
     store &state        ; ]
     fetch &curr_char    ; char ]
 ;    out '1  ; DEBUG
