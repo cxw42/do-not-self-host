@@ -51,9 +51,9 @@ sub _lit { return sequence(_elems @_); }
 # }}}2
 
 # Emit names for punctuation operators.  For now, Q = '?'.
-my @punc_ops = qw{ QQ :: -> <= >= = <> < > := - };
+my @punc_ops = qw{ QQ :: <=> -> <= >= = <> < > := - };
 my @puncop_names =
-    qw(T_TERN1 T_TERN2 T_ARROW T_LE T_GE T_EQ T_NE T_LT T_GT T_ASSIGN T_MINUS);
+    qw(T_TERN1 T_TERN2 T_SSHIP T_ARROW T_LE T_GE T_EQ T_NE T_LT T_GT T_ASSIGN T_MINUS);
 my %emit_names = zip(@punc_ops, @puncop_names);
 
 # The code version of the language defn.  The key is a reminder not used
