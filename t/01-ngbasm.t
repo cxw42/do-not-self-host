@@ -14,6 +14,7 @@ sub test {  # Run ngb and test the output {{{1
     my $test = Test::Cmd->new(prog=>'./ngbasm.py', workdir=>'') or
         die "Could not create test object for intput $in";
 
+    # A runner - a local sub so we don't re-run if the tests are skipped.
     my $wasrun;
     local *runme = sub {
         return if $wasrun;
@@ -43,28 +44,28 @@ sub test {  # Run ngb and test the output {{{1
 
         local *check = sub {
             if(ref $match ne 'SCALAR') {
-                is(shift, $match, $name);
+                os is(shift, $match, $name);
             } else {
                 #diag("Checking if it contains $$match");
-                contains_string(shift, $$match, $name);
+                os contains_string(shift, $$match, $name);
             }
         };
 
         if($which eq 'out') {
-            runme();
-            check($out);
+            os { runme(); check($out); }
         }
 
         if($which eq 'err') {
-            runme();
-            check($err);
+            os { runme(); check($err); }
         }
 
         if($which eq 'result') {  # Note: substrings not supported
-            runme();
-            is(unpack('H*',$result), unpack('H*',$match), $name);
+            os {
+                runme();
+                is(unpack('H*',$result), unpack('H*',$match), $name);
                 # unpack => test string against string.  unpack() takes
                 # a string and returns, in this case, a different string.
+            }
         }
 
     } #foreach test
@@ -121,22 +122,22 @@ my @instrs = (
 );
 
 # Test unknown instruction.  \'' => contains, not is.
-os 2 test(":main\nnotaninstructionreallyforsure", { shouldfail=>true },
+test(":main\nnotaninstructionreallyforsure", { shouldfail=>true },
     ['err', \'Unknown instruction', 'Unknown instructions cause failure']);
 
 # Test everything but lit, since only lit has a required argument
 while( my ($idx, $opname) = each @instrs ) {
     next if $opname eq 'lit';
-    os 2 test(":main\n$opname", ['err', '', 'No stderr'],
+    test(":main\n$opname", ['err', '', 'No stderr'],
         ['result', $preamble . asm($idx) . $end , "Single $opname"]);
 }
 
 # Test lit
-os 2 test(":main\nlit 42", ['err', '', 'No stderr'],
+test(":main\nlit 42", ['err', '', 'No stderr'],
     ['result', $preamble . asm(1, 42) . $end , "lit with operand"]);
 
 # Test lit without operand
-os test(":main\nlit", {shouldfail=>true},
+test(":main\nlit", {shouldfail=>true},
     ['err', \'requires an operand', 'Lit requires operand']);
 
 done_testing();
