@@ -29,11 +29,11 @@
 
     ; Are we done?
     dup                 ; char char ]
-    iseof               ; char flag ]
+    iseof               ; char flag ]   - EOF on the input stream
     cjump &main_done    ; char ]
 
     dup                 ; char char ]
-    eq T_EOF            ; char flag ]
+    eq T_EOF            ; char flag ]   - EOF token from mtok
     cjump &main_done    ; char ]
 
     ; Save the token code
@@ -45,22 +45,26 @@
     dup                 ; char count count ]
     store &data_len     ; char count ]
 
-    out '<
+    ; out '` ; DEBUG
     call &read_token_text   ; char count ]
-    out '>
+    ; out '' ; DEBUG
 
     ; Strip T_IGNORE
     swap                ; count char ]
     dup                 ; count char char ]
     eq T_IGNORE         ; count char flag ]
-    cjump &main_loop    ; count char ]
+    cjump &main_ignore  ; count char ]
 
     ; TODO rewrite barewords
 
-    ; Emit the token code
-    out                 ; count ]
+    ; TODO merge adjacent string literals so 'x''y' -> q{'x'y'}
 
-    ; Emit the token text.  TODO don't emit if unnecessary.
+    ; Emit the token
+    out                 ; count ]
+    dup                 ; count count ]
+    numout              ; count ]
+
+    ; Emit the token text.
     call &write_token_text
 
     drop                ; ]
@@ -74,6 +78,11 @@
 
 :main_done_silent
     end
+
+:main_ignore            ; count char ]
+    drop                ; count ]
+    drop                ; count ]
+    jump &main_loop
 
 ; }}}1
 ; === Buffer routines and data ============================================ {{{1

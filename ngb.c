@@ -539,15 +539,17 @@ int main(int argc, char **argv) {
 
   shutdown_terminal();
 
-  int bot = sp-100;   // print up to the top 100 stack entries
-  if(bot<1) { bot = 1; }
+  if(Debugging) {
+    int bot = sp-100;   // print up to the top 100 stack entries
+    if(bot<1) { bot = 1; }
 
-  for (i = bot; i <= sp; i++) {
-    printf("%8d: %d ", i, data[i]);
+    for (i = bot; i <= sp; i++) {
+      printf("%8d: %d ", i, data[i]);
+    }
+
+    printf("\n");
   }
 
-  if(Debugging)
-    printf("\n");
   exit(retval);
 }
 
