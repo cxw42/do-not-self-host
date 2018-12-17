@@ -55,7 +55,7 @@
     eq T_IGNORE         ; count char flag ]
     cjump &main_ignore  ; count char ]
 
-    ; TODO rewrite barewords
+    ; TODO rewrite barewords that are operators to tokens for those operators
 
     ; TODO merge adjacent string literals so 'x''y' -> q{'x'y'}
 

@@ -2,6 +2,8 @@
 # mtok::lexergen: make the mtok.csv describing the tokenizer
 # Copyright (c) 2018 Chris White
 
+package mtok::lexergen;
+
 use 5.016;
 use strict;
 use warnings;
@@ -10,22 +12,34 @@ use Data::Dumper;
 
 use Data::DFA qw(:all);
 use List::Util qw(max);
-use List::MoreUtils qw(first_index zip);
+use List::MoreUtils qw(first_index);
 use Text::CSV;
 
 use parent 'Exporter';
+use Import::Into;
 our @EXPORT = qw(_e _seq _elems _lit);
+our @EXPORT_OK = qw(generate write_csv);
 
+# Docs {{{1
+
+=head1 NAME
+
+mtok::lexergen - Make a lexer table
+
+=head1 EXPORTS
+
+=cut
+
+# }}}1
 # Exported helper routines {{{1
 sub _e($) { goto &element; }     # for convenience
 sub _seq { goto &sequence; }  # ditto
 sub _elems { return map { _e $_ } split //, shift; }
 sub _lit { return sequence(_elems @_); }
 # }}}1
+sub generate { # {{{1
 
-sub main { # {{{1
-
-=head2 main
+=head2 generate
 
 Make the CSV table for a lexer.  Usage:
 
@@ -110,14 +124,13 @@ symbols; the EMIT constant for that value; and the Data::DFA expression.
 } #main
 
 # }}}1
-
 sub write_csv { # {{{1
 
 =head2 write_csv
 
 Usage:
 
-    mtok::lexergen::write_csv $filename, \@rows;
+    mtok::lexergen::write_csv $filename, $lrRows
 
 =cut
 
@@ -132,7 +145,6 @@ Usage:
 }
 
 # }}}1
-# === Helpers ==============================================================
 # Generate the emit labels {{{1
 
 # Compute the EMIT entries.  Takes the tokens and the DFA; returns a hash
@@ -193,6 +205,44 @@ sub _dfs {
 
     return @retval;
 } #_dfs()
+
+# }}}1
+sub import { # {{{1
+    my $target = caller;
+
+    # Copy symbols listed in @EXPORT first, in case @_ gets trashed later.
+    mtok::lexergen->export_to_level(1, @_);
+
+    # Re-export Data::DFA
+    Data::DFA->import::into($target, qw(:all));
+}
+# }}}1
+1;
+__END__
+# Rest of the docs {{{1
+
+=head1 AUTHOR
+
+Christopher White, C<cxwembedded at gmail.com>
+
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc mtok::lexergen
+
+You can also look for information in the GitHub repo:
+L<https://github.com/cxw42/do-not-self-host>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright (c) 2018 Christopher White.  All rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the the ISC License. Details are in the LICENSE
+file accompanying this distribution.
+
+=cut
 
 # }}}1
 # vi: set fdm=marker fo-=ro:
