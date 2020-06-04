@@ -1,8 +1,12 @@
 # mtok.nas Makefile
 
+.PHONY: all clean
+
 DEPS = state-machine.geninc ../ngbasm.py ../minhi-constants.nas make-mtok-csv.pl ../lib/mtok/lexergen.pm
 
-all: mtok.ngb mtok2.ngb
+PROGRAMS = mtok.ngb mtok2.ngb
+
+all: $(PROGRAMS)
 
 %.ngb: %.nas
 	-rm $@
@@ -18,3 +22,5 @@ state-machine.geninc: mtok-generated.csv state-machine.py
 mtok-generated.csv: make-mtok-csv.pl
 	perl -I../lib $< > $@
 
+clean:
+	-rm -f $(PROGRAMS) state-machine.geninc mtok-generated.csv
