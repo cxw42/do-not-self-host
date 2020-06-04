@@ -15,7 +15,7 @@ use List::MoreUtils qw(zip);
 
 exit main();
 
-# Tokenizer language definition {{{1
+# Tokenizer language definition
 sub tokens { # Returns a hashref
 
     # Try 7: simpler version, without string literals.
@@ -37,7 +37,7 @@ sub tokens { # Returns a hashref
     #
     # Ident
     # |        Numeric constant
-    # |        |  ?? (because nfa2dfa reserves ?)
+    # |        |  ?? (because nfa2dfa reserves '?')
     # |        |  |  Operators that stand for themselves
     # |        |  |  |                             Other punctuation that stands
     # |        |  |  |                             for itself
@@ -45,7 +45,8 @@ sub tokens { # Returns a hashref
     # |        |  |  |                             | |       Whitespace
     # v        v  v  v                             v v       v  EOF
     # SA(A|D)*|D+|QQ|::|<=>|->|<=|>=|=|<>|<|>|:=|-|P|A(A|D)*|W+|E
-    # === https://cyberzhg.github.io/toolbox/nfa2dfa?regex=U0EoQXxEKSp8RCt8UVF8Ojp8PD0+fC0+fDw9fD49fD09fDw+fDx8Pnw9fC18UHxBKEF8RCkqfFcr
+    # === https://cyberzhg.github.io/toolbox/min_dfa?regex=U0EoQXxEKSp8RCt8UVF8Ojp8PD0+fC0+fDw9fD49fD18PD58PHw+fDo9fC18UHxBKEF8RCkqfFcrfEU=
+    # === https://cyberzhg.github.io/toolbox/regex2nfa?regex=U0EoQXxEKSp8RCt8UVF8Ojp8PD0+fC0+fDw9fD49fD18PD58PHw+fDo9fC18UHxBKEF8RCkqfFcrfEU=
 
     # Emit names for punctuation operators.  For now, Q = '?'.
     my @punc_ops = qw{ QQ :: <=> -> <= >= = <> < > := - };

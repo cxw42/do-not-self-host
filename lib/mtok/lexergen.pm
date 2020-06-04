@@ -11,6 +11,7 @@ use Carp qw(croak);
 use Data::Dumper;
 
 use Data::DFA qw(:all);
+use Data::NFA;
 use List::Util qw(max);
 use List::MoreUtils qw(first_index);
 use Text::CSV;
@@ -36,6 +37,38 @@ sub _e($) { goto &element; }     # for convenience
 sub _seq { goto &sequence; }  # ditto
 sub _elems { return map { _e $_ } split //, shift; }
 sub _lit { return sequence(_elems @_); }
+# }}}1
+
+# Tweaked from Data::DFA {{{1
+# I need "duplicate" states to stay separate, since they are associated
+# with different tokens.
+
+sub fromNfaMy($)                                                                  #P Create a DFA parser from an NFA.
+ {my ($nfa) = @_;                                                               # Nfa
+
+  my $dfa       = Data::DFA::newDFA;                                                       # A DFA is a hash of states
+
+  my @nfaStates = (0, $nfa->statesReachableViaJumps(0)->@*);                    # Nfa states reachable from the start state
+  my $initialSuperState = join ' ', sort @nfaStates;                            # Initial super state
+
+  $$dfa{$initialSuperState} = Data::DFA::newState(                                         # Start state
+    state       => $initialSuperState,                                          # Name of the state - the join of the NFA keys
+    nfaStates   => {map{$_=>1} @nfaStates},                                     # Hash whose keys are the NFA states that contributed to this super state
+    final       => Data::DFA::finalState($nfa, {map {$_=>1} @nfaStates}),                  # Whether this state is final
+   );
+
+  $dfa->superStates($initialSuperState, $nfa);                                  # Create DFA superstates from states reachable from the start state
+
+  my $r = $dfa->renumberDfa->removeUnreachableStates;   # Remove states not reachable from the start state *** but KEEP "duplicate" states
+
+  $r
+ }
+
+sub fromExprMy(@)                                                                 #S Create a DFA parser from a regular B<@expression>.
+ {my (@expression) = @_;                                                        # Regular expression
+  fromNfaMy(Data::NFA::fromExpr(@expression))
+ }
+
 # }}}1
 sub generate { # {{{1
 
@@ -69,11 +102,14 @@ symbols; the EMIT constant for that value; and the Data::DFA expression.
     # looks simple (!) - I could probably generate it by hand.
 
     # CAUTION: successive runs may produce a different ordering of states :( .
-    my $dfa = fromExpr(choice(map { $$_[2] } values %$hrTokens));
+    my $dfa = fromExprMy(choice(map { $$_[2] } values %$hrTokens));
 
     # Debug output
+    say STDERR "============================================= DFA";
     $dfa->print('DFA', 2);
-    print STDERR Dumper($dfa), "\n";
+    say STDERR Dumper($dfa);
+    say STDERR $dfa->dumpAsJson;
+    say STDERR "=================================================";
 
     # }}}2
     # Build the output table {{{2
@@ -97,6 +133,10 @@ symbols; the EMIT constant for that value; and the Data::DFA expression.
     my $nsymbols = $#symbols+1;
     push @{ $rows[-1] }, @symbols;
 
+    open my $fh, '>', 'mtok-generated.dot';     # plot while we're at it
+    say $fh 'digraph dfa {';
+    my %dot_states;
+
     # The following code adapted from Data::DFA::print(), since the docs for
     # Data::DFA don't cover the data layout.
     for my $superStateName (sort { $a <=> $b } keys %$dfa) {
@@ -114,10 +154,29 @@ symbols; the EMIT constant for that value; and the Data::DFA expression.
             my $next_state = $dfa->transitionOnSymbol($superStateName, $outgoing_sym);
             my $sym_idx = first_index { $_ eq $outgoing_sym } @symbols;
             $row[3+$sym_idx] = $next_state;     # 3 => NFA state, DFA state, type
+
+            say $fh "$superStateName -> $next_state [ label = \"$outgoing_sym\" ] ";
+            unless($dot_states{$superStateName}){
+                $dot_states{$superStateName} = 1;
+                say $fh "$superStateName [shape=",
+                    ($Final ? 'doublecircle' : 'circle' ),
+                    ']';
+            }
+
+            unless($dot_states{$next_state}){
+                $dot_states{$next_state} = 1;
+                say $fh "$next_state [shape=",
+                    ($dfa->{$next_state}->final ? 'doublecircle' : 'circle' ),
+                    ']';
+            }
+            # See http://jamie-wong.com/2010/10/16/dfas-and-graphviz-dot/
         } #foreach $outgoing_sym
 
         push @rows, \@row;
     } #foreach $superStateName
+
+    say $fh '}';
+    close $fh;
 
     # }}}2
 
@@ -179,7 +238,7 @@ $DB::single=1;
     say STDERR "State:", Dumper [$dfastate];
     my $transitions = $dfastate->transitions;
     my $final = $dfastate->final;
-    print STDERR "$indent> Trying token << $so_far >> in " .
+    print STDERR "$indent> Trying token sequence << $so_far >> in " .
         ($final ? 'accepting ' : '') . "state $state\n";
 
     # Is this state one that should emit?
@@ -189,8 +248,8 @@ $DB::single=1;
             print STDERR "$indent  Checking regex $$lrToken[0] for $token_friendly_name\n";
             if($so_far =~ $$lrToken[0]) {
                 @retval = ($state, $$lrToken[1]);
-                print STDERR "$indent> accepting state for $token_friendly_name: ",
-                    join(', ', @retval), "\n";
+                say STDERR "$indent> $state is an accepting state for",
+                    " $token_friendly_name / $retval[1]";
                 last;
             }
         }
@@ -201,7 +260,8 @@ $DB::single=1;
         my @outgoing_symbols = keys %$transitions;
         for my $outgoing_sym (@outgoing_symbols) {
             my $next_state = $dfa->transitionOnSymbol($state, $outgoing_sym);
-            print STDERR "$indent> trying $state --<< $outgoing_sym >>--> $next_state\n";
+            next if $next_state eq $state;
+            print STDERR "$indent> transition from $state on << $outgoing_sym >> to $next_state\n";
             push @retval, _dfs($hrTokens, $dfa, $depth_left-1, $next_state,
                                 $so_far . $outgoing_sym);
         }
