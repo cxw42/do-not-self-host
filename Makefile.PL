@@ -75,7 +75,7 @@ WriteMakefile(
         'version' => '0.77',
     },
     BUILD_REQUIRES => {
-        'Data::DFA' => '0',
+        'Data::DFA' => '20191119',  # For Data::DFA::State
         'List::MoreUtils' => '0',
         'List::Util' => '0',
         'Test::More' => '0',
@@ -86,6 +86,7 @@ WriteMakefile(
         'Import::Into' => '0',
         'IPC::Run3' => '0',
         'rlib' => '0',
+        'Test::Cmd' => '0',
         'Test::Harness' => '0',
         'Test::OnlySome' => '0.000008',
     },

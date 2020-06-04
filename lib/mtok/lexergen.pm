@@ -101,8 +101,9 @@ symbols; the EMIT constant for that value; and the Data::DFA expression.
     # Data::DFA don't cover the data layout.
     for my $superStateName (sort { $a <=> $b } keys %$dfa) {
         my $superState = $$dfa{$superStateName};
-        my (undef, $nfaStates, $transitions, $Final) = @$superState;
-            # ^ state name seems to be always undef
+        my $nfaStates = $superState->nfaStates;
+        my $transitions = $superState->transitions;
+        my $Final = $superState->final;
         my @outgoing_symbols = sort keys %$transitions;
                 #  vv No NFA states
         my @row = ('', $superStateName, $Final ? 'accept' : '',
@@ -161,7 +162,7 @@ sub _compute_emits {
 sub _dfs {
     my $hrTokens = shift or croak 'Need tokens';
     my $dfa = shift or croak 'Need DFA';
-    my $depth_left = shift;     # note that falsy 0 is valid!j
+    my $depth_left = shift;     # note that falsy 0 is valid!
     croak 'Need depth left' unless defined $depth_left;
     my $state = shift;  # note that falsy state '0' is valid!
     croak 'Need current state' unless defined $state;
@@ -173,8 +174,11 @@ sub _dfs {
     my @retval;
     my $indent = ' ' x (2*length($so_far));
 
-    my $lrState = $$dfa{$state} or die "No state $state in DFA";
-    my (undef, undef, $transitions, $final) = @$lrState;
+$DB::single=1;
+    my $dfastate = $$dfa{$state} or die "No state $state in DFA";
+    say STDERR "State:", Dumper [$dfastate];
+    my $transitions = $dfastate->transitions;
+    my $final = $dfastate->final;
     print STDERR "$indent> Trying token << $so_far >> in " .
         ($final ? 'accepting ' : '') . "state $state\n";
 
