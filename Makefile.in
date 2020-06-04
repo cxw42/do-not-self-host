@@ -1,6 +1,10 @@
 # Makefile for ngb
 
-ngb_all: ngb ngbasm.py
+ngb_all: ngb ngbasm.py install_old_data_dfa
+
+install_old_data_dfa:
+	@: # Install the old version in local/
+	cpm install -v https://cpan.metacpan.org/authors/id/P/PR/PRBRENAN/Data-DFA-20181027.tar.gz
 
 %.py: %.md
 	./extract.py $^ $@
