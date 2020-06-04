@@ -1,4 +1,4 @@
-#!python3
+#!/usr/bin/env python3
 # state-machine.py: Convert a state machine from
 # https://cyberzhg.github.io/toolbox/nfa2dfa, saved as a CSV, into ngb asm.
 # Copyright (c) 2018 cxw42.  Licensed MIT.
