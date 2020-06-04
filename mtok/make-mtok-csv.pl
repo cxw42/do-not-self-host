@@ -36,14 +36,14 @@ sub tokens { # Returns a hashref
     # W ::= [[:space:]]     ; mapped to T_IGNORE
     #
     # Ident
-    #          Numeric constant
-    #             ?? (because nfa2dfa reserves ?)
-    #                Operators that stand for themselves
-    #                                              Other punctuation that stands
-    #                                              for itself
-    #                                                Barewords
-    #                                                        Whitespace
-    #                                                           EOF
+    # |        Numeric constant
+    # |        |  ?? (because nfa2dfa reserves ?)
+    # |        |  |  Operators that stand for themselves
+    # |        |  |  |                             Other punctuation that stands
+    # |        |  |  |                             for itself
+    # |        |  |  |                             | Barewords
+    # |        |  |  |                             | |       Whitespace
+    # v        v  v  v                             v v       v  EOF
     # SA(A|D)*|D+|QQ|::|<=>|->|<=|>=|=|<>|<|>|:=|-|P|A(A|D)*|W+|E
     # === https://cyberzhg.github.io/toolbox/nfa2dfa?regex=U0EoQXxEKSp8RCt8UVF8Ojp8PD0+fC0+fDw9fD49fD09fDw+fDx8Pnw9fC18UHxBKEF8RCkqfFcr
 

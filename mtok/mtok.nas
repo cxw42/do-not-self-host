@@ -81,6 +81,8 @@
 ;                                                           EOF
 ; SA(A|D)*|D+|QQ|::|<=>|->|<=|>=|=|<>|<|>|:=|-|P|A(A|D)*|W+|E
 ; === https://cyberzhg.github.io/toolbox/nfa2dfa?regex=U0EoQXxEKSp8RCt8UVF8Ojp8PD0+fC0+fDw9fD49fD09fDw+fDx8Pnw9fC18UHxBKEF8RCkqfFcr
+; === https://cyberzhg.github.io/toolbox/min_dfa?regex=U0EoQXxEKSp8RCt8UVF8Ojp8PD0+fC0+fDw9fD49fD18PD58PHw+fDo9fC18UHxBKEF8RCkqfFcrfEU=
+; === https://cyberzhg.github.io/toolbox/regex2nfa?regex=U0EoQXxEKSp8RCt8UVF8Ojp8PD0+fC0+fDw9fD49fD18PD58PHw+fDo9fC18UHxBKEF8RCkqfFcrfEU=
 
 ; }}}1
 ; === State -> token mapping ============================================== {{{1
