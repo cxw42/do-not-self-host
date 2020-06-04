@@ -59,6 +59,9 @@ nytprof.out
 /MANIFEST.bak
 /pm_to_blib
 
+# cpm, carton
+/local/
+
 # Miscellaneous
 /tags
 *.dummy
