@@ -102,7 +102,23 @@ symbols; the EMIT constant for that value; and the Data::DFA expression.
     # looks simple (!) - I could probably generate it by hand.
 
     # CAUTION: successive runs may produce a different ordering of states :( .
-    my $dfa = fromExprMy(choice(map { $$_[2] } values %$hrTokens));
+    my $dfa;
+    my $count;
+    while(1) {
+        say STDERR "Generating DFA...";
+        keys %$hrTokens;    # reset internal iterator
+        $dfa = fromExprMy(choice(map { $$_[2] } values %$hrTokens));
+        last unless $dfa->{0}->final;
+            # Sometimes state 0 accepts whitespace --- not sure why.
+            # That leads to an error `E_0 not found`, so retry if
+            # it happened.
+
+        rand;   # advance the random-number generator
+        if(++$count > 10) {
+            say STDERR "Sorry --- please try again!  Seed was ", srand;
+            exit 1;
+        }
+    }
 
     # Debug output
     say STDERR "============================================= DFA";
